@@ -1,0 +1,35 @@
+# Raw/processed data: too large, and M5 must be downloaded from Kaggle under its own rules
+data/raw/
+data/processed/
+*.parquet
+*.zip
+
+# Trained model artifacts (regenerate with the ml pipeline; never commit weights)
+models/
+artifacts/
+*.pkl
+*.joblib
+*.ubj
+*.npy
+*.npz
+*.pt
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+dist/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
