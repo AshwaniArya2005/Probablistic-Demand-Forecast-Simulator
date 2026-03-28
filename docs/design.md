@@ -18,17 +18,17 @@ Repo name: `probabilistic-demand-forecasting-simulator` (the folder was original
 
 | File | Contents (from the competition docs; verified on load in Phase 2) |
 |---|---|
-| `sales_train_evaluation.csv` | wide format, one row per item-store series; id columns (`item_id`, `dept_id`, `cat_id`, `store_id`, `state_id`) and daily unit sales `d_1..d_1941` |
+| `sales_train_evaluation.csv` | wide format, one row per item-store series; id columns (`id`, `item_id`, `dept_id`, `cat_id`, `store_id`, `state_id`; `id` is a composite key such as `FOODS_1_001_CA_1_evaluation`) and daily unit sales `d_1..d_1941` |
 | `calendar.csv` | date, weekday, month, year, `wm_yr_wk` (price join key), `event_name/type_1/2`, `snap_CA/TX/WI` |
 | `sell_prices.csv` | weekly `sell_price` per store and item, keyed by `wm_yr_wk` |
 
-Data spans 2011-01-29 to 2016-05-22.
+**Sales data spans 2011-01-29 to 2016-05-22** (`d_1..d_1941`; 22 May 2016 is a Sunday). `calendar.csv` runs 28 days further, to 2016-06-19 (1,969 days, the M5 evaluation horizon); those days have no sales and are never used. Verified on load in Phase 2.
 
-**Subset:** state CA, stores CA_1..CA_3, 100 items sampled with a fixed seed, stratified by department and by sales-velocity tercile so slow and intermittent items are represented. That is 300 series (about 580k daily rows). Items without at least 2 years of history before the test window are dropped and the count is documented. Scale up only if runtime allows.
+**Subset:** state CA, stores CA_1..CA_3, 100 items sampled with a fixed seed, stratified by department and by sales-velocity tercile so slow and intermittent items are represented. That is 300 series (about 580k daily rows). The eligible pool is items on sale in **all three** CA stores for at least 2 years (730 days) before the tuning cutoff (the first `sell_price` week starts on or before `2015-08-30 - 730 days`). Measured in Phase 2/3: 2,215 of 3,049 items (2,221 under a 31 Aug cutoff; see the decision log). Everything else is dropped and the count is documented. Scale up only if runtime allows.
 
 **Velocity segments (high / mid / low):** terciles of each series' mean daily sales since its first on-sale week, computed **once, from data up to the tuning cutoff (`test_start - 12 weeks`, section 5) only**. Items are sampled stratified on their mean velocity tercile across the three stores; each series carries its own segment label. The same labels drive the stratified sampling, the pooling of sigma and conformal offsets (section 5), and the result breakdowns (section 9). They are never recomputed with later data, because a segment defined using test-period sales would leak the outcome into how results are grouped and calibrated.
 
-**Cleaning rules known in advance:** rows before an item's first `sell_price` are "not yet on sale", not zero demand, and are dropped. Days when the store is closed (e.g. Christmas, to be verified in EDA) are structural zeros and are flagged.
+**Cleaning rules known in advance:** rows before an item's first `sell_price` are "not yet on sale", not zero demand, and are dropped. Days when the store is closed (Christmas is the known case) are near-zero, not exactly zero: in Phase 2, CA_1..3 total sales across all 3,049 items were 5-8 units on each Dec 25 of 2011-2015, against thousands on a normal day. A closed day is therefore defined by a **near-zero threshold on total store sales** (threshold and the list of closed dates confirmed in Phase 3 EDA), not `== 0`. Such days are flagged, and the calendar rule derived from them is applied to 2015 (section 5).
 
 **Limitations (must appear in the README):**
 1. No inventory levels, lead times, or costs in the data. All are simulated assumptions.
@@ -65,7 +65,7 @@ Why cumulative: daily SKU-store demand is mostly 0-2 units, so a daily interval 
 
 ## 5. Splits and leakage rules
 
-Timeline: **test = last 26 weeks** (about Nov 2015 - May 2016). Model selection and tuning use rolling-origin folds on data up to `test_start - 12 weeks` only.
+Timeline: **test = last 26 weeks.** Concretely, the **first review date is Sunday 2015-11-22** (`test_start`), and **test demand days run Monday 2015-11-23 to Sunday 2016-05-22** (182 days, 26 whole weeks). **Reviews are on Sundays for every series** (the fixed review weekday, section 9); an order placed after close on a Sunday covers demand from the Monday. Model selection and tuning use rolling-origin folds on data up to `test_start - 12 weeks` = **Sunday 2015-08-30** (the tuning cutoff) only.
 
 For a model version with cutoff date `c` (retrained every K = 8 weeks on an expanding window):
 - **Fit set:** origins `s` with `s + P <= c - 84 days`. The target window must have fully ended before the cutoff (embargo), otherwise labels leak across the train/test boundary.
@@ -76,11 +76,11 @@ For a model version with cutoff date `c` (retrained every K = 8 weeks on an expa
 
 General rules: never shuffle; nothing (scalers, price medians, scale factors, item sampling thresholds) is fitted on data after the origin; all history features are computed as-of t; test data is never used for tuning; the test-window forecasts are computed once and reused across policies (forecasts depend only on historical sales, not on simulated stock).
 
-**Origins:** an origin is evaluated only if its whole target window lies inside the data, so the last usable origin for horizon P is `2016-05-22 - P days` and the effective test window is slightly under 26 weeks for the longer horizons.
+**Origins:** an origin is evaluated only if its whole target window lies inside the data, and the simulator needs the full protection interval too. The longest horizon is P = 14, so the **last usable review date is Sunday 2016-05-08, 14 days before 2016-05-22**. That gives **25 Sunday review dates** (2015-11-22 to 2016-05-08). The same review dates are used for every P (including P = 7 and 10, which could go a little later) so results are comparable across horizons and policies; the last two demand weeks are only ever the tail of a protection interval.
 
-**Test window regime (read before interpreting any result).** The last 26 weeks (about 22 Nov 2015 to 22 May 2016) include the Thanksgiving-Christmas-New Year peak, **closed-store days** such as Christmas Day (structural zeros; to be verified in EDA), the Super Bowl and Easter.
-- Results mix a holiday-peak regime with a normal one. We therefore report two sub-periods with boundaries fixed now: **holiday peak = 22 Nov 2015 to 3 Jan 2016**, and **rest = after 3 Jan 2016**. We do not claim results generalise to other seasons.
-- Closed days are known from the calendar, so the future-window closed-day count is a legitimate feature. It is identified as a calendar rule (e.g. Dec 25) from training years only, never from zeros inside the window being forecast. In the simulator, closed days replay zero demand while holding cost still accrues.
+**Test window regime (read before interpreting any result).** The test demand days (23 Nov 2015 to 22 May 2016) include the Thanksgiving-Christmas-New Year peak, **closed-store days** such as Christmas Day (near-zero sales; threshold confirmed in Phase 3), the Super Bowl and Easter.
+- Results mix a holiday-peak regime with a normal one. We therefore report two sub-periods on demand days, with boundaries fixed now: **holiday peak = 23 Nov 2015 to 3 Jan 2016 (6 whole weeks)**, and **rest = 4 Jan to 22 May 2016 (20 whole weeks)**. Both are whole Monday-Sunday weeks, so each review cycle belongs to exactly one sub-period (assigned by the cycle's first demand day). We do not claim results generalise to other seasons.
+- Closed days are known from the calendar, so the future-window closed-day count is a legitimate feature. A closed day is one where total store sales fall below a near-zero threshold (section 2), not `== 0`. It is identified as a calendar rule (e.g. Dec 25) from **training years only** (2011-2014, all before the tuning cutoff), never from sales inside the window being forecast, and then applied to 2015. In the simulator, closed days replay zero demand while holding cost still accrues.
 - Calibration windows lag the regime. Version 1's calibration window (autumn, calm) is applied through the holiday peak, so sigma and conformal offsets will likely be too small there; the next version's window contains the peak and will be too large afterwards. Expect achieved-vs-target service gaps in both policies; conformal prediction carries no exchangeability guarantee for time series.
 - The first model versions were fit on data ending around late August 2015, so they have seen only four earlier holiday seasons (2011-2014).
 
@@ -114,7 +114,7 @@ Service-level grid for target-driven policies: **alpha in {0.80, 0.90, 0.95, 0.9
 | Demand | Actual M5 sales replayed | Understates true demand where the store was out of stock |
 | Information | Planners see the true demand history even when simulated stock ran out (forecasts and the naive rule read historical M5 sales, not simulated sales) | Real systems only see censored sales; optimistic for all policies |
 | Unmet demand | Lost sales | Backorder variant available as a sensitivity |
-| Policy | Periodic review R = 7, order-up-to S, one fixed review weekday for all series | Real retailers stagger reviews by supplier |
+| Policy | Periodic review R = 7, order-up-to S, review weekday fixed to Sunday for all series | Real retailers stagger reviews by supplier |
 | Lead time | Fixed L = 3 base (grid {3, 7}) | No supplier data; random lead time is a sensitivity |
 | Timing | Order placed after close of day t, arrives before opening day t+L+1, so the protection interval is exactly days t+1..t+R+L, matching the target | |
 | Start | Stock at S at the first review, 4-week warm-up excluded from metrics | |
@@ -159,12 +159,18 @@ Environment: **Python 3.12** virtualenv with pinned requirements; Node 24; Postg
 - 2026-09-20 Approved Phase 1 with amendments: (1) headline = matched-service-level inventory trade-off curve, cost as a sensitivity sweep since default costs imply about 99% critical ratio; (2) service-level grid {0.80, 0.90, 0.95, 0.99}, integer order-up-to levels (ceil, applied to all policies); (3) future-window covariate aggregates and stated known-prices assumption; (4) scaled metrics (WAPE, MASE, scaled pinball) and a target-normalization experiment; (5) point-policy sigma from out-of-sample calibration residuals, naive rule defined now; (6) Python 3.12.
 - Choices made while writing this file (open to change): `ceil` rounding; primary matched-service panel = fill rate; RMSE (not std) for sigma; test window 26 weeks, calibration 12 weeks, retrain every 8 weeks; random lead time Uniform{2,3,4}; quantile set includes 0.10/0.50/0.90 for display alongside the four service-level quantiles.
 - 2026-09-20 Second round of amendments: (1) model staleness is 12-20 weeks (12-week calibration gap plus up to 8 weeks of use), not 12; (2) velocity terciles and segments are computed once from data up to the tuning cutoff only, and used for sampling, pooling and reporting; (3) bootstrap is a cluster bootstrap over items, not series; (4) per-series sigma and conformal offsets are replaced by scale-normalised values pooled by velocity segment, for both policies; (5) test-window regime documented (holiday peak, closed-store days, regime-lagged calibration), with fixed sub-period reporting and a closed-day calendar feature.
+- 2026-09-20 Phase 2 data verification (M5 files loaded; all counts, columns and dates match section 2) and resulting decisions, each logged separately:
+  1. **Review calendar.** First review date is Sunday 2015-11-22; test demand days are 2015-11-23 to 2016-05-22; the review weekday is Sunday for all series; holiday peak = 23 Nov to 3 Jan (6 whole weeks), rest = 4 Jan to 22 May (20 whole weeks). The last usable review date is 2016-05-08 (14 days before the last sales day, because targets and simulation need the full P = 14 protection interval), giving 25 review dates common to all horizons. This replaces the earlier "about 22 Nov" wording, since exactly 26 weeks ending 22 May starts on Monday 23 Nov. Consequence: `test_start` is the first review date, so the tuning cutoff is Sunday 2015-08-30.
+  2. **Closed days** are defined by a near-zero threshold on total store sales, not `== 0` (Dec 25 showed 5-8 units across CA_1..3 in every year 2011-2015). Threshold and closed-date list confirmed in Phase 3 from training years only (2011-2014), then applied to 2015 as a calendar rule.
+  3. **Two-year history rule** uses the tuning-cutoff reading (2 years of history before the tuning cutoff, all three CA stores on sale), not "before the test window". With the 2015-08-30 cutoff from decision 1 this leaves **2,215** eligible items (2,221 was measured with a 31 Aug cutoff derived from a 23 Nov test start; 2,306 under the looser test-window reading). Enough to sample 100 items.
+  4. **Documented data differences:** the sales file has a composite `id` column not listed originally; `calendar.csv` runs to 2016-06-19 (28 days past the last sales day) and those days are unused.
 
 ## 13. Left to settle in later phases
 
 - Phase 4: exact feature list, trailing-window lengths, price-median window.
 - Phase 6: normalization scale floor; XGBoost hyperparameters (tuned on the rolling tuning folds).
 - Phase 9: how the API exposes the "stockout risk" label (HIGH/MEDIUM/LOW) thresholds.
-- Phase 3 (EDA): confirm closed-store days and encode them as a calendar rule from training years; compute velocity terciles from data up to the tuning cutoff only.
+- Phase 3 (EDA): confirm the closed-day threshold and dates from 2011-2014, encode them as a calendar rule and apply it to 2015; compute velocity terciles from data up to the tuning cutoff (2015-08-30) only; draw the 100-item subset.
+- Phase 10: the simulator's "4-week warm-up excluded from metrics" (section 9) would remove the first four weeks of the six-week holiday peak if the simulation starts at the first review date 2015-11-22. Decide whether the simulation starts 4 weeks earlier (2015-10-25) so the whole test window is measured.
 - Phase 9: residual-vs-scale diagnostic for pooled sigma (constant-CV assumption).
 - Phase 10: the `c` grid for the naive rule, backorder variant.
