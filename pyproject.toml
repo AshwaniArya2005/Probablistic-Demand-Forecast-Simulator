@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = "==3.12.*"
 # Exact pins. Later phases add their own (scikit-learn, xgboost, shap, fastapi...) when first needed.
 dependencies = [
+    "matplotlib==3.11.2",
     "numpy==2.2.6",
     "pandas==2.3.3",
     "pyarrow==21.0.0",

@@ -1,9 +1,8 @@
 """Phase 2: load the raw M5 files and check them against docs/design.md. Run: uv run python ml/inspect_data.py"""
-from pathlib import Path
-
 import pandas as pd
 
-RAW = Path(__file__).resolve().parent.parent / "data" / "raw"
+from config import RAW, TUNING_CUTOFF
+
 flags = []
 
 
@@ -64,12 +63,12 @@ print(f"[info] all-zero series: {int((X.sum(axis=1) == 0).sum())}")
 
 # --- design-doc rules ---
 print("== design-doc rules ==")
-test_start = last_sales_date - pd.Timedelta(weeks=26) + pd.Timedelta(days=1)
-print(f"[info] test_start = {test_start.date()} (design: ~22 Nov 2015), tuning cutoff = {(test_start - pd.Timedelta(weeks=12)).date()}")
+test_start = TUNING_CUTOFF + pd.Timedelta(weeks=12)                 # first Sunday review date, 2015-11-22
+print(f"[info] first review date {test_start.date()} ({test_start.day_name()}), tuning cutoff {TUNING_CUTOFF.date()}")
 wk_start = cal.groupby("wm_yr_wk").date.min()
 first_wk = prices.groupby(["store_id", "item_id"]).wm_yr_wk.min().map(wk_start).reset_index(name="first_price_date")
 ca_first = first_wk[first_wk.store_id.isin(["CA_1", "CA_2", "CA_3"])]
-for name, ref in [("test window", test_start), ("tuning cutoff", test_start - pd.Timedelta(weeks=12))]:
+for name, ref in [("test window", test_start), ("tuning cutoff", TUNING_CUTOFF)]:
     ok = ca_first.first_price_date <= ref - pd.Timedelta(days=2 * 365)
     print(f"[info] CA_1..3 series on sale >= 2y before the {name}: {int(ok.sum())} of {len(ca_first)}; "
           f"items with all 3 stores: {int(ok.groupby(ca_first.item_id).all().sum())}")
