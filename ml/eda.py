@@ -147,3 +147,36 @@ test_tot = opn[opn.date >= TEST_START].groupby("id").sales.sum()
 print(f"series with zero sales in the 28 days to the cutoff: {(last28 == 0).sum()} {seg[last28[last28 == 0].index].value_counts().to_dict()}; "
       f"zero sales over the whole test window: {(test_tot == 0).sum()}")
 print(f"closed days per series inside the test window: {int(panel.closed[panel.date >= TEST_START].sum() / 300)} (Dec 25 2015)")
+
+# ---- 7. are long zero runs simultaneous across an item's three stores, or single-store? (training only) ----
+W = train.pivot(index="date", columns="id", values="sales")                       # closed days already dropped (skipped, not zero)
+R = pd.DataFrame(False, index=W.index, columns=W.columns)
+run_rows = []                                                                      # (id, start, length) of every run >= 14 open days
+for sid in W.columns:
+    a = W[sid].to_numpy()
+    z = (a == 0) & (np.arange(len(a)) >= np.argmax(a > 0))
+    e = np.flatnonzero(np.diff(np.r_[0, z.astype(int), 0]))
+    for st, en in zip(e[::2], e[1::2]):
+        if en - st >= 14:
+            R.iloc[st:en, R.columns.get_loc(sid)] = True
+            run_rows.append((sid, st, en))
+item_of = panel.groupby("id").item_id.first()
+k = R.T.groupby(item_of).transform("sum").T                                        # per series-day: item's stores in a run that day
+on_sale = W.notna()
+p = R.to_numpy().sum() / on_sale.to_numpy().sum()
+kk = k.where(R).stack()                                                            # only run-days
+print(f"\n== zero runs >= 14 open days, simultaneity across the item's 3 stores (training) ==\n{len(run_rows)} runs; "
+      f"{p:.1%} of on-sale series-days sit inside one")
+obs = kk.value_counts(normalize=True).sort_index()
+exp = pd.Series({1: (1 - p) ** 2, 2: 2 * p * (1 - p), 3: p ** 2})
+print("share of run-days by number of the item's stores in a run that day (1 = this store only):")
+print(pd.DataFrame({"observed": obs, "if_independent": exp}).round(3).to_string())
+ov = [(k[sid].to_numpy()[st:en] > 1).mean() for sid, st, en in ((s, a, b) for s, a, b in run_rows)]
+ov = pd.Series(ov)
+print(f"runs with no overlap with another store's run: {(ov == 0).mean():.1%}; with >=50% of days overlapping: {(ov >= .5).mean():.1%}; "
+      f"fully overlapped (every day another store also out): {(ov == 1).mean():.1%}")
+seg_of = seg.reindex(R.columns)
+for s in ("low", "mid", "high"):
+    m = (R.loc[:, seg_of == s].to_numpy())
+    kk_s = k.loc[:, seg_of == s].where(R.loc[:, seg_of == s]).stack()
+    print(f"  {s}: run-days {len(kk_s)}, share with >=2 stores out {(kk_s >= 2).mean():.1%}, all 3 out {(kk_s == 3).mean():.1%}")
