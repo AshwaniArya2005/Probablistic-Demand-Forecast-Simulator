@@ -12,3 +12,15 @@ dependencies = [
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["ml"]
+# fast suite by default; real-data tests need data/processed (run: uv run pytest -m realdata)
+addopts = "-m 'not realdata'"
+markers = ["realdata: needs data/processed built from the M5 files; not run in CI"]

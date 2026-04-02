@@ -89,11 +89,11 @@ General rules: never shuffle; nothing (scalers, price medians, scale factors, it
 
 - **Point:** WAPE = sum|y - yhat| / sum y (pooled). **MASE** per series = test MAE / in-sample MAE of the naive-P forecast (`y_t - y_{t-P}`) on the training period, averaged over series. Series with zero scale are excluded and counted. Raw MAE/RMSE are reported for reference. MAPE is shown only on non-zero targets, to demonstrate that it breaks at zero, and is never used for selection.
 - **Probabilistic:** **scaled pinball loss** = pinball loss divided by the same per-series scale as MASE, averaged over quantiles and series. Also **coverage**: empirical share of actuals inside [P10, P90] (nominal 0.80) and one-sided coverage of each quantile (share of `y <= q_alpha` vs alpha). One-sided coverage is what the reorder policy needs. Because demand is a small integer, nominal-or-higher coverage is expected for slow movers, and is explained rather than hidden.
-- Evaluation origins are weekly.
+- Evaluation origins are weekly (Sundays). **MASE scale** for a tuning fold is each series' in-sample MAE of the naive-P forecast over all daily origins whose target ended on or before the fold's first origin (nothing from the fold or later). **Point baselines have no quantiles**, so for them the one-sided figure reported is the share of actuals at or below the point forecast (the quantile level the forecast implicitly sits at), labelled as such; interval coverage is reported from Phase 7 on.
 
 ## 7. Models
 
-Baselines for the P-day sum: **naive** (previous P days), **MA-28** (28-day mean x P/28), **seasonal naive** (same window 364 days earlier, weekday-aligned). "Same weekday last week" collapses into naive for a 7-day sum, hence the swap. Then Linear Regression, Random Forest, XGBoost (squared error = mean forecast), XGBoost quantile (`reg:quantileerror`, LightGBM as fallback). ARIMA is dropped. Conformal calibration (split conformal on the calibration window, scores pooled by velocity segment as in section 5) is a cheap stretch, reported as coverage before vs after.
+Baselines for the P-day sum: **naive** (previous P days), **MA-28** (28-day open-day mean x P, i.e. the 28-day mean scaled to the P-day window), **seasonal naive** (same window 364 days earlier, weekday-aligned; where that window does not exist because the series is under a year old it falls back to naive-P, and the share of fallback rows is reported). "Same weekday last week" collapses into naive for a 7-day sum, hence the swap. Then Linear Regression, Random Forest, XGBoost (squared error = mean forecast), XGBoost quantile (`reg:quantileerror`, LightGBM as fallback). ARIMA is dropped. Conformal calibration (split conformal on the calibration window, scores pooled by velocity segment as in section 5) is a cheap stretch, reported as coverage before vs after.
 
 ## 8. Inventory policies (all periodic-review, order-up-to level S)
 
@@ -182,6 +182,11 @@ Environment: **Python 3.12** virtualenv with pinned requirements; Node 24; Postg
   3. **`FOODS_2_101_CA_2` is kept** under the pre-registered first-price rule and noted in section 2.
   4. **Warm-up:** the simulation starts at the 2015-10-25 review with a version-0 model, so all 25 review dates from 22 Nov to 8 May count in the metrics (sections 5 and 9). This replaces the earlier "4-week warm-up excluded" and resolves the Phase 10 question.
   5. **Disclosure about the test window:** the Phase 3 EDA looked at test-window volume (`weekly_level.png` and the level comparison by year include it). The holiday-peak / rest split (23 Nov to 3 Jan / 4 Jan to 22 May) was fixed before that and is **unchanged**. The spring 2016 level rise (about 1.2x the summer calibration-window level, against 0.80-1.04x in earlier years) is a **post-hoc observation**, not a pre-registered hypothesis; its expected effect is under-service in the rest period for both policies (section 5). From here on every modelling choice, including target normalization, windows and caps, is decided on the tuning folds only.
+- 2026-09-20 Phase 5 pre-registration, logged **before any baseline score was computed** (folds in `ml/folds.py`, committed with this entry):
+  1. **Tuning folds.** Four non-overlapping folds of 12 consecutive Sunday review origins each, all on data up to the tuning cutoff (the last fold's P = 14 targets end exactly on 2015-08-30): **F1** 2014-08-31 to 2014-11-16 (autumn, Thanksgiving in its targets); **F2** 2014-11-23 to 2015-02-08 (the holiday fold: the same calendar season as the test window's holiday peak, a year earlier, spanning Thanksgiving, Christmas with its closure, New Year and the Super Bowl); **F3** 2015-03-08 to 2015-05-24 (spring); **F4** 2015-05-31 to 2015-08-16 (summer, the season of version 1's calibration window). The same origins serve P = 7, 10 and 14. Chosen by a fixed rule (12 Sundays, last fold anchored to the cutoff, one fold aligned to the test window's calendar season) and not from any score. Contiguous except a three-week gap between F2 and F3.
+  2. **What is run:** naive, MA-28 and seasonal naive on F1-F4 for P in {7, 10, 14}: WAPE (pooled, and by velocity segment), MASE (per-series scale as in section 6, zero-scale series excluded and counted), MAE, RMSE, and the share of actuals at or below the point forecast. Results are written to `docs/results/` with the commit that produced them.
+  3. **No test-window metric is computed.** `folds.assert_tuning_only` enforces it in code (a fold whose target windows pass the tuning cutoff raises), `test_folds.py` tests the guard, and section 14 logs every touch.
+  4. **Testing is part of the definition of done** for every phase from Phase 5 on (section 15, `docs/testing.md`), CI runs the fast suite.
 
 ## 13. Left to settle in later phases
 
@@ -191,3 +196,17 @@ Environment: **Python 3.12** virtualenv with pinned requirements; Node 24; Postg
 - Phase 3 is done (closed-day rule, terciles, subset; see the decision log). Open from it:
   - **Dead series at the cutoff (Phase 6):** 28 series had zero sales in the 28 days before the cutoff; the normalization scale floor must handle them.
 - Phase 10: implement the warm-up (version-0 model, simulation from 2015-10-25) and the hindsight "exclude zero-demand cycles" diagnostic as decided in section 12.
+
+## 14. Test-window touch log
+
+Every time anything (a metric, a plot, a table, a model comparison, a threshold, a hyperparameter) is computed from data whose demand day falls in the test window (2015-11-23 to 2016-05-22), it is recorded here with date, what was computed, and whether it informed any decision. Tuning-stage code calls `folds.assert_tuning_only`. Model versions that retrain during the test window (section 5) use only data before their own cutoffs and are not touches.
+
+| Date | Phase | What was computed on test-window data | Informed a decision? |
+|---|---|---|---|
+| (no entries) | | | |
+
+The Phase 3 EDA looked at test-window *volume* before this log existed; that is disclosed in section 12 (decision 5 after Phase 3) and is not repeated here.
+
+## 15. Testing and definition of done
+
+From Phase 5 on, a phase is complete only when its tests are written and pass: the fast suite (synthetic fixtures, no data, run by CI on every push) and, where marked, the real-data checks (`pytest -m realdata`). Tests assert definitions, invariants, hand-computed values and synthetic ground truth, never unmeasured accuracy. What each component must be tested for, and what is still pending, is in `docs/testing.md`; a skipped placeholder there blocks its phase.
