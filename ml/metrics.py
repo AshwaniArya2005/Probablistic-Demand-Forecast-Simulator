@@ -37,13 +37,18 @@ def _per_series(err, ids):
     return pd.Series(np.asarray(err, float)).groupby(np.asarray(ids)).mean()
 
 
+def mase_by_series(y, yhat, ids, scale):
+    """per-series MAE / scale; zero or missing scale gives NaN (excluded by the callers)"""
+    mae_s = _per_series(np.abs(np.asarray(y, float) - np.asarray(yhat, float)), ids)
+    sc = scale.reindex(mae_s.index)
+    return (mae_s / sc).where(sc.notna() & (sc > 0))
+
+
 def mase(y, yhat, ids, scale):
     """mean over series of (series MAE / scale). Series with zero or missing scale are excluded and counted.
     returns (value, n_series_used, n_excluded)"""
-    mae_s = _per_series(np.abs(np.asarray(y, float) - np.asarray(yhat, float)), ids)
-    sc = scale.reindex(mae_s.index)
-    ok = sc.notna() & (sc > 0)
-    return float((mae_s[ok] / sc[ok]).mean()), int(ok.sum()), int((~ok).sum())
+    r = mase_by_series(y, yhat, ids, scale)
+    return float(r.mean()), int(r.notna().sum()), int(r.isna().sum())
 
 
 def pinball(y, q, alpha):

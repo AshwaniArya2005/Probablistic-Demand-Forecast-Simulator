@@ -97,3 +97,14 @@ def test_onesided_coverage_of_true_quantile_matches_exact_cdf(alpha):
     assert exact >= alpha
     se = np.sqrt(exact * (1 - exact) / n)
     assert abs(coverage_onesided(y, np.full(n, q)) - exact) < 4 * se
+
+
+def test_mase_by_series_hand_and_median():
+    y, yhat = [4, 6, 10, 10, 1], [5, 3, 8, 12, 2]
+    ids = ["A", "A", "B", "B", "C"]
+    r = mase_by_series(y, yhat, ids, pd.Series({"A": 2.0, "B": 4.0, "C": 0.0}))
+    assert r["A"] == pytest.approx(1.0) and r["B"] == pytest.approx(0.5) and np.isnan(r["C"])
+    assert r.median() == pytest.approx(0.75)                       # median over the two usable series
+    # one tiny scale dominates the mean but not the median: MASE 100/0.01 = 10000, 100/100 = 1, 100/100 = 1
+    big = mase_by_series([100, 100, 100], [0, 0, 0], ["A", "B", "C"], pd.Series({"A": 0.01, "B": 100.0, "C": 100.0}))
+    assert big.mean() == pytest.approx(10002 / 3) and big.median() == pytest.approx(1.0)

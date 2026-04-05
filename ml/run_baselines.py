@@ -25,7 +25,7 @@ for fold in FOLDS:
             m = cls(P)                                                               # baselines are stateless: nothing to fit
             p = m.predict(sel)
             mase, used, excl = metrics.mase(y, p, sel.id, scale)
-            rows.append(dict(fold=fold, P=P, model=name, n=len(sel), wape=metrics.wape(y, p), mase=mase, mase_series=used, mase_excluded=excl,
+            rows.append(dict(fold=fold, P=P, model=name, n=len(sel), wape=metrics.wape(y, p), mase=mase, mase_median=metrics.mase_by_series(y, p, sel.id, scale).median(), mase_series=used, mase_excluded=excl,
                              mae=metrics.mae(y, p), rmse=metrics.rmse(y, p), share_y_le_forecast=metrics.coverage_onesided(y, p),
                              fallback_share=m.fallback_share(sel) if name == "snaive" else 0.0))
             for s in ("low", "mid", "high"):
@@ -41,7 +41,7 @@ by_seg.to_csv(out / "phase5_baselines_tuning_by_segment.csv", index=False)
 
 head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
 dirty = bool(subprocess.run(["git", "status", "--porcelain", "ml", "tests"], capture_output=True, text=True, cwd=ROOT).stdout.strip())
-avg = res.groupby(["P", "model"])[["wape", "mase", "mae", "rmse", "share_y_le_forecast"]].mean().round(3)
+avg = res.groupby(["P", "model"])[["wape", "mase", "mase_median", "mae", "rmse", "share_y_le_forecast"]].mean().round(3)
 avg_seg = by_seg.groupby(["P", "model", "segment"]).wape.mean().unstack().round(3)[["low", "mid", "high"]]
 md = f"""# Phase 5 baselines on the tuning folds
 
@@ -50,8 +50,15 @@ no test-window data was evaluated. Origins are Sundays: {len(FOLDS)} folds x 12 
 Series-level detail: `phase5_baselines_tuning.csv`, `phase5_baselines_tuning_by_segment.csv`.
 
 WAPE is pooled over the fold; MASE is the mean over series of MAE / the series' in-sample naive-P MAE (zero-scale series excluded and
-counted in the CSV); `share_y_le_forecast` is the share of actuals at or below the point forecast, i.e. the quantile level the forecast
+counted in the CSV); `mase_median` is the median over series, a robustness display added after seeing that one series dominates the F4 mean (see the note below); `share_y_le_forecast` is the share of actuals at or below the point forecast, i.e. the quantile level the forecast
 implicitly sits at (point baselines have no intervals). Averages below are simple means over the four folds.
+
+## Note on MASE in F4
+
+The F4 mean MASE is dominated by one series, `FOODS_2_101_CA_2` (first sale 1,578 days after its first price, kept under the pre-registered rule).
+It sold almost nothing before F4, so its naive scale is 0.03, and it started selling in F4: its naive MASE is 217. Without the five worst
+series the F4 naive P = 14 mean falls from 1.70 to 0.93; the median is 0.87. The mean-over-series definition of design section 6 is unchanged;
+the median column is an added diagnostic. Any model comparison should look at both.
 
 ## By fold
 
