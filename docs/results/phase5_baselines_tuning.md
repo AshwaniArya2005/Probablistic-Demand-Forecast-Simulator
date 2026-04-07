@@ -1,6 +1,6 @@
 # Phase 5 baselines on the tuning folds
 
-Run 2026-09-20 at code commit `0452c67` (uncommitted changes in ml/ or tests/). Tuning folds only (design section 12, `ml/folds.py`);
+Run 2026-09-20 at code commit `4f1b04a`. Tuning folds only (design section 12, `ml/folds.py`);
 no test-window data was evaluated. Origins are Sundays: 4 folds x 12 origins x 300 series = 3600 rows per fold per horizon.
 Series-level detail: `phase5_baselines_tuning.csv`, `phase5_baselines_tuning_by_segment.csv`.
 
@@ -11,7 +11,7 @@ implicitly sits at (point baselines have no intervals). Averages below are simpl
 ## Note on MASE in F4
 
 The F4 mean MASE is dominated by one series, `FOODS_2_101_CA_2` (first sale 1,578 days after its first price, kept under the pre-registered rule).
-It sold nothing in the training period, so its naive scale is 0.03, and it started selling in F4: its naive MASE is 217. Without the five worst
+It sold almost nothing before F4, so its naive scale is 0.03, and it started selling in F4: its naive MASE is 217. Without the five worst
 series the F4 naive P = 14 mean falls from 1.70 to 0.93; the median is 0.87. The mean-over-series definition of design section 6 is unchanged;
 the median column is an added diagnostic. Any model comparison should look at both.
 
