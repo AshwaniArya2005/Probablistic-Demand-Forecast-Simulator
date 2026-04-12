@@ -8,6 +8,12 @@ uv run pytest                 # fast suite: synthetic fixtures only, needs no da
 uv run pytest -m realdata     # real-data checks: need data/processed built by ml/prepare.py and ml/features.py
 ```
 
+## Declaring a phase done
+
+1. Commit the phase's code and tests. Replace any placeholder tagged `# PENDING-PHASE: N` for this phase with real tests.
+2. `uv run python ml/record_tests.py N` runs the fast suite and the real-data tests on the clean tree and appends the result to `docs/results/test_log.md` (exit code 1 if anything failed).
+3. Add N to `docs/phase_status.json` and commit. `tests/test_phase_gate.py` then fails if a placeholder for N remains, if a model N must deliver is not in `models.REGISTRY` (`ml/phase_gate.py: REQUIRED_MODELS`), or if the log has no passing fast + real-data row for N.
+
 Rules for every test:
 - **No unmeasured accuracy numbers.** A test asserts definitions, invariants, hand-computed values and properties of synthetic problems with known truth. It never asserts "WAPE < x" or "service level > y" for the project's data.
 - **Small seeded synthetic fixtures** (`tests/conftest.py`: five series incl. a stock-out run, a dead series and a short series). Exact pmf arithmetic is preferred to simulation where a test needs a true quantile.
