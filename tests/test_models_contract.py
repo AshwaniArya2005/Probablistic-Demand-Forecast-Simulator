@@ -78,9 +78,10 @@ def check_causality(m, test, P):
         if c not in columns(P) and c not in ("id", "date") and str(junk[c].dtype) != "category":
             junk[c] = rng.permutation(junk[c].to_numpy()) + rng.integers(1, 999, len(junk))
     assert np.array_equal(m.predict(junk), base), "predictions depend on a column that is not a declared input"
-    assert np.array_equal(m.predict(test.iloc[::-1])[::-1], base), "predictions depend on row order"
+    close = lambda a, b: np.allclose(a, b, rtol=1e-9, atol=1e-9)        # matrix products can differ in the last bits between batch shapes
+    assert close(m.predict(test.iloc[::-1])[::-1], base), "predictions depend on row order"
     for k in (0, len(test) // 2, len(test) - 1):
-        assert m.predict(test.iloc[[k]])[0] == base[k], "predictions depend on other rows"
+        assert close(m.predict(test.iloc[[k]])[0], base[k]), "predictions depend on other rows"
 
 
 @pytest.mark.parametrize("name,P", PARAMS, ids=IDS)

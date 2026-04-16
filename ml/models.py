@@ -89,3 +89,6 @@ def load(path):
     with open(path) as f:
         name = json.load(f)["name"]
     return REGISTRY[name].load(path)
+
+
+import learned  # noqa: E402,F401  registers lr, rf, xgb (learned imports Model and REGISTRY from this module, defined above)
