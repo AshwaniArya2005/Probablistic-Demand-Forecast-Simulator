@@ -1,0 +1,7 @@
+decision,variant,with_feature,without,rule,outcome,no_item
+year-ago sum_364_P,raw,0.3761,0.3774,keep iff XGBoost gain >= 0.003,drop,
+ids (rf),raw,0.3693,0.3695,fewer ids preferred unless more ids gain >= 0.003,no_ids,0.3692
+ids (xgb),raw,0.3761,0.3775,fewer ids preferred unless more ids gain >= 0.003,no_ids,0.3783
+year-ago sum_364_P,norm,0.4023,0.4065,keep iff XGBoost gain >= 0.003,keep,
+ids (rf),norm,0.3774,0.3772,fewer ids preferred unless more ids gain >= 0.003,no_ids,0.3773
+ids (xgb),norm,0.4023,0.4028,fewer ids preferred unless more ids gain >= 0.003,no_ids,0.4015

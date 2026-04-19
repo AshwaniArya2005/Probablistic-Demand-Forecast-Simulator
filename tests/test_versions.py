@@ -80,3 +80,18 @@ def test_real_features_respect_the_schedule(P):
         assert len(fit) > 0 and (fit.date + P * DAY).max() <= fit_end(c)
         cal = F[calibration_mask(F.date, c, P)]
         assert cal.date.min() >= fit_end(c) and cal.date.max() + P * DAY <= c
+
+
+@pytest.mark.parametrize("P", PS)
+def test_tuning_fold_versions_mirror_deployment(P):
+    """Phase 6 pre-registration: one version per fold with cutoff = the fold's first origin, fit targets ending 84 days earlier,
+    a calibration window starting exactly there, and nothing reaching the test window"""
+    from folds import FOLDS, origins
+    for fold in FOLDS:
+        c = origins(fold).min()
+        fit = GRID[fit_mask(GRID, c, P)]
+        assert (fit + P * DAY).max() == fit_end(c) == c - EMBARGO_DAYS * DAY
+        cal = GRID[calibration_mask(GRID, c, P)]
+        assert cal.min() == fit_end(c) and (cal + P * DAY).max() <= c
+        assert set(fit).isdisjoint(origins(fold)) and fit.max() < origins(fold).min()
+        assert (fit + P * DAY).max() < TUNING_CUTOFF and origins(fold).max() + P * DAY <= TUNING_CUTOFF
