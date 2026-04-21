@@ -29,7 +29,8 @@ FLOOR_CFG = dict(max_depth=6, min_child_weight=30)                   # XGBoost c
 GRIDS = {"lr": [{}],
          "rf": [dict(max_depth=d, min_samples_leaf=l) for d in (10, 16) for l in (60, 20)],
          "xgb": [dict(max_depth=d, min_child_weight=w) for d in (3, 6) for w in (30, 5)]}
-ARMS = {"all": lambda P: (), "no_sum364": lambda P: (f"sum_364_{P}",), "no_item": lambda P: ("item_id",), "no_ids": lambda P: tuple(STATIC)}
+ARMS = {"all": lambda P: (), "no_sum364": lambda P: (f"sum_364_{P}",), "no_item": lambda P: ("item_id",), "no_ids": lambda P: tuple(STATIC),
+        "no_futprice": lambda P: (f"price_mean_rel_p{P}", f"price_min_rel_p{P}")}      # report-only (design section 4 known-prices ablation), no threshold
 
 feats = pd.read_parquet(PROCESSED / "features.parquet")
 seg = pd.read_parquet(PROCESSED / "panel.parquet", columns=["id", "segment"]).drop_duplicates("id").set_index("id").segment
@@ -119,6 +120,7 @@ def stage_ablate(floor):
     sel = {(f, v): selected(f, v, floor) for f in GRIDS for v in ("raw", "norm")}
     specs = [(f, v, c, a, fl) for (f, v), (_, _, c, _, fl) in sel.items() for a in ("no_sum364",)]           # year-ago: all families
     specs += [(f, v, c, a, fl) for (f, v), (_, _, c, _, fl) in sel.items() if f in ("rf", "xgb") for a in ("no_item", "no_ids")]
+    specs += [(f, v, c, "no_futprice", fl) for (f, v), (_, _, c, _, fl) in sel.items()]      # run after Phase 6 closed; report-only
     run(specs, "ablate")
 
 
@@ -190,7 +192,7 @@ def stage_report(floor):
     for f in GRIDS:
         for v in ("raw", "norm"):
             b = selected(f, v, fl)
-            for a in ("all", "no_sum364", "no_item", "no_ids"):
+            for a in ("all", "no_sum364", "no_item", "no_ids", "no_futprice"):
                 if a in ("no_item", "no_ids") and f == "lr":
                     continue
                 s = (b[0], b[1], b[2], a, b[4])
