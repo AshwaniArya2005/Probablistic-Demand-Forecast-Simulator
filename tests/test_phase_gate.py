@@ -5,7 +5,7 @@ import pytest
 import phase_gate as g
 from models import REGISTRY
 
-PLACEHOLDERS = {"test_conformal.py": 8, "test_shap.py": 9, "test_simulator.py": 10}
+PLACEHOLDERS = {"test_conformal.py": 7, "test_shap.py": 9, "test_simulator.py": 10}
 
 
 def test_no_placeholder_remains_for_a_done_phase():

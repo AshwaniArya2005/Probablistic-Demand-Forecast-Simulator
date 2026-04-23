@@ -1,6 +1,6 @@
 # Phase 6 point forecasts on the tuning folds
 
-Run 2026-09-20 at code commit `54fb2f4`. Tuning folds only; no test-window data was evaluated (touch log unchanged). One model version per fold and horizon: fit set ends at c - 84 days, evaluated on the fold's 12 Sunday origins. All rules were pre-registered in design.md section 12 before scoring.
+Run 2026-09-20 at code commit `37c1322` (uncommitted changes in ml/ or tests/). Tuning folds only; no test-window data was evaluated (touch log unchanged). One model version per fold and horizon: fit set ends at c - 84 days, evaluated on the fold's 12 Sunday origins. All rules were pre-registered in design.md section 12 before scoring.
 
 **MA-28 is the primary benchmark.** `ratio` = model WAPE / MA-28 WAPE (below 1 is better). **No normalisation decision is made here**: both variants are reported side by side and carried into Phase 7, which decides on scaled pinball. Means are simple means over folds. Full per-fit results: `phase6_point_all_fits.csv`.
 
@@ -183,28 +183,34 @@ Selected configs: lr: no hyperparameters, rf: {'max_depth': 16, 'min_samples_lea
 
 ## Ablations at each selected config (mean over the 12 cells; F2 separately)
 
-| family   | variant   | arm       |   mean_wape |   F2_wape |   mean_mase |   mean_mase_median |
-|:---------|:----------|:----------|------------:|----------:|------------:|-------------------:|
-| lr       | raw       | all       |      0.3854 |    0.3955 |       1.051 |              0.799 |
-| lr       | raw       | no_sum364 |      0.3856 |    0.396  |       1.051 |              0.8   |
-| lr       | norm      | all       |      0.5268 |    0.5338 |       1.265 |              0.877 |
-| lr       | norm      | no_sum364 |      0.5263 |    0.533  |       1.267 |              0.875 |
-| rf       | raw       | all       |      0.3693 |    0.382  |       1.035 |              0.753 |
-| rf       | raw       | no_sum364 |      0.3702 |    0.3835 |       1.035 |              0.761 |
-| rf       | raw       | no_item   |      0.3692 |    0.3816 |       1.033 |              0.754 |
-| rf       | raw       | no_ids    |      0.3695 |    0.3819 |       1.037 |              0.754 |
-| rf       | norm      | all       |      0.3774 |    0.3912 |       1.038 |              0.762 |
-| rf       | norm      | no_sum364 |      0.3772 |    0.3917 |       1.04  |              0.768 |
-| rf       | norm      | no_item   |      0.3773 |    0.3893 |       1.042 |              0.762 |
-| rf       | norm      | no_ids    |      0.3772 |    0.3903 |       1.04  |              0.764 |
-| xgb      | raw       | all       |      0.3761 |    0.3855 |       1.059 |              0.784 |
-| xgb      | raw       | no_sum364 |      0.3774 |    0.3898 |       1.062 |              0.792 |
-| xgb      | raw       | no_item   |      0.3783 |    0.3904 |       1.072 |              0.792 |
-| xgb      | raw       | no_ids    |      0.3775 |    0.3891 |       1.07  |              0.793 |
-| xgb      | norm      | all       |      0.4023 |    0.4124 |       1.088 |              0.796 |
-| xgb      | norm      | no_sum364 |      0.4065 |    0.4196 |       1.094 |              0.805 |
-| xgb      | norm      | no_item   |      0.4015 |    0.4174 |       1.091 |              0.791 |
-| xgb      | norm      | no_ids    |      0.4028 |    0.4125 |       1.095 |              0.794 |
+| family   | variant   | arm         |   mean_wape |   F2_wape |   mean_mase |   mean_mase_median |
+|:---------|:----------|:------------|------------:|----------:|------------:|-------------------:|
+| lr       | raw       | all         |      0.3854 |    0.3955 |       1.051 |              0.799 |
+| lr       | raw       | no_sum364   |      0.3856 |    0.396  |       1.051 |              0.8   |
+| lr       | raw       | no_futprice |      0.3853 |    0.3957 |       1.049 |              0.798 |
+| lr       | norm      | all         |      0.5268 |    0.5338 |       1.265 |              0.877 |
+| lr       | norm      | no_sum364   |      0.5263 |    0.533  |       1.267 |              0.875 |
+| lr       | norm      | no_futprice |      0.5213 |    0.5282 |       1.26  |              0.872 |
+| rf       | raw       | all         |      0.3693 |    0.382  |       1.035 |              0.753 |
+| rf       | raw       | no_sum364   |      0.3702 |    0.3835 |       1.035 |              0.761 |
+| rf       | raw       | no_item     |      0.3692 |    0.3816 |       1.033 |              0.754 |
+| rf       | raw       | no_ids      |      0.3695 |    0.3819 |       1.037 |              0.754 |
+| rf       | raw       | no_futprice |      0.3702 |    0.383  |       1.036 |              0.753 |
+| rf       | norm      | all         |      0.3774 |    0.3912 |       1.038 |              0.762 |
+| rf       | norm      | no_sum364   |      0.3772 |    0.3917 |       1.04  |              0.768 |
+| rf       | norm      | no_item     |      0.3773 |    0.3893 |       1.042 |              0.762 |
+| rf       | norm      | no_ids      |      0.3772 |    0.3903 |       1.04  |              0.764 |
+| rf       | norm      | no_futprice |      0.3789 |    0.3919 |       1.043 |              0.763 |
+| xgb      | raw       | all         |      0.3761 |    0.3855 |       1.059 |              0.784 |
+| xgb      | raw       | no_sum364   |      0.3774 |    0.3898 |       1.062 |              0.792 |
+| xgb      | raw       | no_item     |      0.3783 |    0.3904 |       1.072 |              0.792 |
+| xgb      | raw       | no_ids      |      0.3775 |    0.3891 |       1.07  |              0.793 |
+| xgb      | raw       | no_futprice |      0.3786 |    0.3865 |       1.073 |              0.796 |
+| xgb      | norm      | all         |      0.4023 |    0.4124 |       1.088 |              0.796 |
+| xgb      | norm      | no_sum364   |      0.4065 |    0.4196 |       1.094 |              0.805 |
+| xgb      | norm      | no_item     |      0.4015 |    0.4174 |       1.091 |              0.791 |
+| xgb      | norm      | no_ids      |      0.4028 |    0.4125 |       1.095 |              0.794 |
+| xgb      | norm      | no_futprice |      0.4048 |    0.4148 |       1.092 |              0.793 |
 
 ### Decisions under the pre-registered rules
 

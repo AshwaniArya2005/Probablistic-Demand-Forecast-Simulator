@@ -8,7 +8,7 @@ STATUS = ROOT / "docs" / "phase_status.json"
 LOG = ROOT / "docs" / "results" / "test_log.md"
 TESTS = ROOT / "tests"
 FIRST_GATED_PHASE = 5                          # tests are a completion criterion from Phase 5 on
-REQUIRED_MODELS = {6: ["lr", "rf", "xgb"]}     # models a phase must have registered in models.REGISTRY
+REQUIRED_MODELS = {6: ["lr", "rf", "xgb"], 7: ["xgb_q"]}     # models a phase must have registered in models.REGISTRY
 TAG = re.compile(r"^# PENDING-PHASE:\s*(\d+)\s*$", re.M)      # a whole comment line, so strings that mention the tag do not count
 ROW = re.compile(r"\|\s*Phase (\d+)\s*\|.*?fast: (\d+) passed, (\d+) failed.*?realdata: (\d+) passed, (\d+) failed")
 

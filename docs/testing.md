@@ -33,19 +33,22 @@ Rules for every test:
 | Tuning folds and test-window guard (5) | `test_folds.py`: 12 Sundays each, ordered, last P = 14 target ends on the tuning cutoff, one fold covers Nov-Jan, `assert_tuning_only` rejects test-window dates | done |
 | Learned point models (6) | `test_learned_synthetic.py` runs linear truth, step learning (trees), all-zero target on **Linear Regression, Random Forest and XGBoost** (registered in `models.REGISTRY`, so `test_models_contract.py` covers them too: shape, no NaN or negatives, seeded determinism, save/load, causality, dead and short series). `test_learned_models.py`: scale = `max(mean_28, floor) * P` by hand, normalised forecasts multiply the scale back, LR clips at zero and ignores unseen ids, early-stopping split is temporal with an embargo (hand dates), RF row cap and depth cap bind, ablation `drop` removes a column completely. The determinism test found RF's parallel predict was not bit-reproducible; fixed | done |
 | Selection rules (6) | `test_selection.py`: simplest-within-0.002, floor tie to 1/28, year-ago gain 0.003, id-arm rule, all on hand-picked numbers with boundary cases | done |
-| Quantile models (7) | same `test_learned_synthetic.py` quantile checks (near-true quantiles, coverage bounded by the exact CDF, sorted); quantile XGBoost must register with `kind = "quantile"` | awaiting Phase 7 |
-| Conformal (8) | `test_conformal.py` | **pending, see below** |
+| Quantile models (7) | same `test_learned_synthetic.py` quantile checks (near-true quantiles, coverage bounded by the exact CDF, sorted) plus the contract tests; `xgb_q` must register with `kind = "quantile"` (`REQUIRED_MODELS[7]`) | awaiting Phase 7 |
+| Phase 7 pure functions (7) | relative-tolerance selection rules, `cov_lo` / `cov_hi` / status (boundaries at alpha +- 0.03), benchmark quantile `yhat + z * sigma * scale`, the normalisation rule (mean and median must both win; a mean-vs-median disagreement stays raw), all with hand-computed cases | **pending, blocks Phase 7** |
+| Conformal (7) | `test_conformal.py` (placeholder tagged `PENDING-PHASE: 7`) | **pending, blocks Phase 7** |
 | SHAP (9) | `test_shap.py` | **pending, see below** |
 | Simulator and policies (10) | `test_simulator.py` | **pending, see below** |
 
 ## Obligations for components not built yet
 
 ### conformal
+Pre-registered in design.md section 12 (Phase 7 pre-registration, item 6). Tests to write, replacing the placeholder:
 - Coverage on exchangeable synthetic data: split-conformal upper bounds cover between `alpha` and `alpha + 1/(n+1)` (finite-sample guarantee), checked over many seeded repeats.
-- Hand-computed offset: scores 1..10, alpha = 0.8 gives the `ceil((n+1) alpha) = 9`th smallest score = 9.
-- Guard: with too few scores for the requested level (a 0.99 offset needs at least 99), the code refuses or falls back explicitly and says so; it never silently returns the sample maximum.
-- Pooling by velocity segment, scores divided by series scale and offsets multiplied back by the series' own scale (design section 5); the scale multiplies back exactly (hand example).
-- No calibration-window score may come from a fit-set target day (reuses `versions.calibration_mask`).
+- Hand-computed offset: scores 1..10, alpha = 0.8 gives `k = ceil(11 * 0.8) = 9`, the 9th smallest score, 9.
+- **Too-few-scores guard:** `n_min(alpha) = ceil(alpha / (1 - alpha))` is 4, 9, 19, 99 for 0.80, 0.90, 0.95, 0.99. With `n = n_min - 1` the code raises `InsufficientScores`; at `n = n_min` it returns the maximum (k = n) by rule, not by fallback. It never returns the sample maximum for a smaller n. The thin-sample warning fires below `5 / (1 - alpha)` and is not an error.
+- Pooling by the given velocity segment labels (never recomputed, never per series alone); scores divided by the series' scale and the offset multiplied back by the series' own scale (hand example, including the floor).
+- Calibration origins are the **Sunday** origins from `versions.calibration_mask`: none from a fit-set target day, none with a target unobserved at the cutoff, no daily origins.
+- After adding offsets the quantiles are clipped at 0 and re-sorted across alphas (crossing case by hand).
 
 ### shap
 - Additivity: for every explained row, base value + sum of SHAP values equals the model output (to numerical tolerance), for the mean model and each explained quantile model.
