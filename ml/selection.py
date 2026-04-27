@@ -29,3 +29,30 @@ def choose_id_arm(wape_by_arm, gain=ID_GAIN):
         if wape_by_arm[chosen] - wape_by_arm[nxt] >= gain:
             chosen = nxt
     return chosen
+
+
+# ---- Phase 7 (relative tolerances on scaled pinball) ----
+REL_TIE = 0.005        # configs / floors within 0.5% relative of the best are tied: take the simpler / the default
+REL_ADOPT = 0.01       # normalisation must win by at least 1% relative on BOTH the mean and the median over series
+REL_ADD = 0.005        # a feature group is added only if it lowers mean scaled pinball by at least 0.5% relative
+
+
+def simplest_within_rel(items, values, rel=REL_TIE):
+    best = min(values)
+    return next(i for i, v in zip(items, values) if v <= best * (1 + rel))
+
+
+def choose_floor_rel(value_by_floor, default=1 / 14, rel=REL_TIE):
+    """floors within `rel` of the best are tied and the default wins if it is among them; otherwise the best floor"""
+    best = min(value_by_floor.values())
+    tied = [f for f, v in value_by_floor.items() if v <= best * (1 + rel)]
+    return default if default in tied else min(value_by_floor, key=value_by_floor.get)
+
+
+def adopt_normalised(raw_mean, raw_median, norm_mean, norm_median, rel=REL_ADOPT):
+    """both the mean and the median over series must improve by at least `rel`: one tiny-scale series must not decide it"""
+    return norm_mean <= raw_mean * (1 - rel) and norm_median <= raw_median * (1 - rel)
+
+
+def add_group(base, with_group, rel=REL_ADD):
+    return with_group <= base * (1 - rel)

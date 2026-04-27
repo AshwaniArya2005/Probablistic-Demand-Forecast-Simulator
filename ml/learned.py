@@ -14,6 +14,7 @@ from sklearn.linear_model import LinearRegression
 
 import features
 from models import REGISTRY, Model
+from quantiles import sort_quantiles
 
 EARLY_STOP_DAYS = 56
 
@@ -132,17 +133,22 @@ class XGB(_Trees):
     name = "xgb"
     defaults = dict(max_depth=6, min_child_weight=30, learning_rate=0.05, max_rounds=1000, patience=50, fixed_rounds=300)
 
+    def _param(self):
+        p = self.params
+        return dict(objective="reg:squarederror", tree_method="hist", learning_rate=p["learning_rate"], max_depth=p["max_depth"],
+                    min_child_weight=p["min_child_weight"], subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, seed=self.seed)
+
     def _fit(self, X, y):
-        p, M = self.params, self._matrix(X, True)
-        param = dict(objective="reg:squarederror", tree_method="hist", learning_rate=p["learning_rate"], max_depth=p["max_depth"],
-                     min_child_weight=p["min_child_weight"], subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, seed=self.seed)
+        p, M, param = self.params, self._matrix(X, True), self._param()
         rounds = p["fixed_rounds"]
+        self.hit_cap_ = False
         if "date" in X.columns:
             tr, va = early_stop_split(X["date"], self.P)
             if len(tr) and len(va):
                 bst = xgb.train(param, xgb.DMatrix(M[tr], label=y[tr]), p["max_rounds"], evals=[(xgb.DMatrix(M[va], label=y[va]), "val")],
                                 early_stopping_rounds=p["patience"], verbose_eval=False)
                 rounds = bst.best_iteration + 1
+                self.hit_cap_ = rounds >= p["max_rounds"]          # reported: the pre-registered round cap bound
         self.n_rounds_ = rounds
         self.model = xgb.train(param, xgb.DMatrix(M, label=y), rounds)
 
@@ -150,4 +156,33 @@ class XGB(_Trees):
         return self.model.predict(xgb.DMatrix(self._matrix(X, False)))
 
 
-REGISTRY.update({c.name: c for c in (LR, RF, XGB)})
+class XGBQ(XGB):
+    """XGBoost quantile regression (`reg:quantileerror`), one joint multi-quantile model per horizon for ALPHAS. Output: scaled back if
+    normalised, clipped at 0, sorted along the quantile axis (monotone rearrangement). `predict` is the median.
+    Without dates a fixed 2,000 rounds are used (the 0.99 quantile converges slowly)."""
+    name, kind = "xgb_q", "quantile"
+    ALPHAS = (0.10, 0.50, 0.80, 0.90, 0.95, 0.99)
+    defaults = dict(XGB.defaults, fixed_rounds=2000)
+
+    def _param(self):
+        return dict(super()._param(), objective="reg:quantileerror", quantile_alpha=np.array(self.ALPHAS))
+
+    def _raw(self, X):
+        q = np.asarray(self.model.predict(xgb.DMatrix(self._matrix(X, False))), "float64").reshape(len(X), len(self.ALPHAS))
+        return q * self.scale(X)[:, None] if self.normalize else q
+
+    def crossing_share(self, X):
+        """share of rows whose raw quantiles cross before sorting (reported, then fixed by sorting)"""
+        return float((np.diff(self._raw(X), axis=1) < 0).any(axis=1).mean()) if len(X) else 0.0
+
+    def predict_quantiles(self, X, alphas):
+        idx = [self.ALPHAS.index(a) for a in alphas]                  # ValueError if an alpha was not trained
+        if len(X) == 0:
+            return np.zeros((0, len(idx)))
+        return sort_quantiles(np.maximum(self._raw(X), 0.0))[:, idx]
+
+    def predict(self, X):
+        return self.predict_quantiles(X, [0.50])[:, 0]
+
+
+REGISTRY.update({c.name: c for c in (LR, RF, XGB, XGBQ)})

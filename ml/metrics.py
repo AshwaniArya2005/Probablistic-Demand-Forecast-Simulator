@@ -73,3 +73,31 @@ def coverage_interval(y, lo, hi):
 def coverage_onesided(y, q):
     """share of actuals at or below the predicted quantile (target: alpha, or more for discrete demand)"""
     return float((np.asarray(y, float) <= np.asarray(q, float)).mean())
+
+
+def scaled_pinball_by_series(y, q, alpha, ids, scale):
+    """per-series mean pinball / scale; zero or missing scale gives NaN (excluded by the callers)"""
+    d = np.asarray(y, float) - np.asarray(q, float)
+    pb = _per_series(np.maximum(alpha * d, (alpha - 1) * d), ids)
+    sc = scale.reindex(pb.index)
+    return (pb / sc).where(sc.notna() & (sc > 0))
+
+
+COVERAGE_TOL = 0.03
+
+
+def coverage_discrete(y, q, alpha, tol=COVERAGE_TOL):
+    """coverage of the quantity the policy orders, ceil(q). cov_hi = share(y <= ceil q), cov_lo = share(y < ceil q); their gap is the tie mass.
+    Status: under-covered if cov_hi < alpha - tol; over-covered if cov_lo > alpha + tol; else consistent with calibration (the nominal
+    level is reached inside the discrete step)."""
+    y, q = np.asarray(y, float), np.asarray(q, float)
+    c = np.ceil(q)
+    hi, lo = float((y <= c).mean()), float((y < c).mean())
+    status = "under" if hi < alpha - tol else "over" if lo > alpha + tol else "consistent"
+    return dict(cov_hi=hi, cov_lo=lo, tie=hi - lo, zero_share=float((c == 0).mean()), raw_cov=float((y <= q).mean()), status=status)
+
+
+def interval_coverage_discrete(y, q_lo, q_hi):
+    """share of y in [floor(q_lo), ceil(q_hi)], the display interval for integer demand"""
+    y = np.asarray(y, float)
+    return float(((y >= np.floor(np.asarray(q_lo, float))) & (y <= np.ceil(np.asarray(q_hi, float)))).mean())

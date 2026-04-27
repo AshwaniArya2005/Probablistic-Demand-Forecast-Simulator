@@ -105,3 +105,52 @@ def test_id_ablation_arms_have_the_pre_registered_columns():
     assert set(ids) <= full
     assert set(RF(7, drop=("item_id",)).columns) == full - {"item_id"}
     assert set(RF(7, drop=tuple(ids)).columns) == full - set(ids)
+
+
+# ---- quantile XGBoost (Phase 7) ----
+from learned import XGBQ
+
+ALPHAS = [0.1, 0.5, 0.8, 0.9, 0.95, 0.99]
+SMALL = dict(max_rounds=60, fixed_rounds=60)
+
+
+def test_xgbq_is_registered_as_a_quantile_model_with_the_pre_registered_alphas():
+    assert REGISTRY["xgb_q"] is XGBQ and XGBQ.kind == "quantile" and XGBQ.learned and XGBQ.nonlinear
+    assert XGBQ.ALPHAS == (0.10, 0.50, 0.80, 0.90, 0.95, 0.99)
+
+
+def test_xgbq_output_is_sorted_nonnegative_and_predict_is_the_median(feats):
+    P = 7
+    train = feats[feats.date + pd.Timedelta(days=P) <= feats.date.quantile(0.7)]
+    test = feats[feats.date > feats.date.quantile(0.7)]
+    m = XGBQ(P, seed=0, **SMALL).fit(train, train[f"y_p{P}"])
+    q = m.predict_quantiles(test, ALPHAS)
+    assert q.shape == (len(test), 6) and (q >= 0).all() and (np.diff(q, axis=1) >= 0).all()
+    assert np.array_equal(m.predict(test), q[:, 1])
+    assert np.array_equal(m.predict_quantiles(test, [0.9, 0.5]), q[:, [3, 1]])          # any subset, in the order asked
+    assert 0.0 <= m.crossing_share(test) <= 1.0 and isinstance(m.hit_cap_, bool)
+
+
+def test_xgbq_rejects_an_untrained_level(feats):
+    m = XGBQ(7, seed=0, **SMALL).fit(feats, feats["y_p7"])
+    with pytest.raises(ValueError):
+        m.predict_quantiles(feats, [0.75])
+
+
+def test_xgbq_normalised_constant_target_multiplies_the_scale_back():
+    """y = 3 * scale: the normalised target is the constant 3, so every quantile must come back as 3 * scale"""
+    rng = np.random.default_rng(0)
+    X = pd.DataFrame({"mean_28": rng.uniform(0.2, 5, 600), "x": rng.normal(size=600)})
+    m = XGBQ(7, seed=0, columns=["mean_28", "x"], normalize=True, floor=1 / 14, fixed_rounds=300)
+    m.fit(X, 3 * m.scale(X))
+    Xn = pd.DataFrame({"mean_28": [0.0, 1.0, 4.0], "x": [0.0, 0.0, 0.0]})
+    q = m.predict_quantiles(Xn, ALPHAS)
+    assert q == pytest.approx(np.repeat(3 * m.scale(Xn)[:, None], 6, axis=1), rel=1e-3)     # includes a row below the floor
+
+
+def test_xgbq_crossing_is_fixed_by_sorting_but_reported(feats):
+    m = XGBQ(7, seed=0, **SMALL).fit(feats, feats["y_p7"])
+    raw = m._raw(feats)
+    srt = m.predict_quantiles(feats, ALPHAS)
+    assert (np.diff(srt, axis=1) >= 0).all()
+    assert m.crossing_share(feats) == pytest.approx(float((np.diff(raw, axis=1) < 0).any(axis=1).mean()))

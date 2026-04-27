@@ -108,3 +108,36 @@ def test_mase_by_series_hand_and_median():
     # one tiny scale dominates the mean but not the median: MASE 100/0.01 = 10000, 100/100 = 1, 100/100 = 1
     big = mase_by_series([100, 100, 100], [0, 0, 0], ["A", "B", "C"], pd.Series({"A": 0.01, "B": 100.0, "C": 100.0}))
     assert big.mean() == pytest.approx(10002 / 3) and big.median() == pytest.approx(1.0)
+
+
+def test_scaled_pinball_by_series_hand():
+    r = scaled_pinball_by_series([10, 8, 3, 5, 9], [8, 10, 3, 1, 9], 0.9, ["A", "A", "B", "B", "C"], pd.Series({"A": 2.0, "B": 3.0, "C": 0.0}))
+    assert r["A"] == pytest.approx(0.5) and r["B"] == pytest.approx(0.6) and np.isnan(r["C"])
+
+
+def test_coverage_discrete_hand():
+    y, q = [0, 1, 2, 3, 4], [0.4, 1.2, 2.5, 3.1, 3.9]          # ceil q = 1, 2, 3, 4, 4
+    r = coverage_discrete(y, q, 0.9)
+    assert r["cov_hi"] == pytest.approx(1.0) and r["cov_lo"] == pytest.approx(0.8) and r["tie"] == pytest.approx(0.2)
+    assert r["raw_cov"] == pytest.approx(0.8) and r["zero_share"] == 0.0 and r["status"] == "consistent"
+    assert coverage_discrete(y, q, 0.7)["status"] == "over"      # even excluding ties, 0.8 > 0.7 + 0.03
+    assert coverage_discrete([0, 0, 1], [0.0, 0.0, 0.3], 0.5)["zero_share"] == pytest.approx(2 / 3)
+
+
+@pytest.mark.parametrize("n_low,alpha,expected", [(76, 0.8, "under"), (78, 0.8, "consistent"), (82, 0.79, "consistent")])
+def test_coverage_status_tolerance_bands(n_low, alpha, expected):
+    """100 forecasts of ceil q = 1: n_low actuals of 0 (covered, and below ceil q), the rest 9 (missed)"""
+    y = [0] * n_low + [9] * (100 - n_low)
+    assert coverage_discrete(y, [0.5] * 100, alpha)["status"] == expected
+
+
+def test_over_coverage_needs_the_no_ties_coverage_above_alpha_plus_tol():
+    y = [0] * 84 + [9] * 16
+    assert coverage_discrete(y, [0.5] * 100, 0.8)["status"] == "over"          # cov_lo 0.84 > 0.83
+    assert coverage_discrete([0] * 82 + [9] * 18, [0.5] * 100, 0.8)["status"] == "consistent"
+
+
+def test_interval_coverage_discrete_hand():
+    y = [0, 1, 5, 9]
+    assert interval_coverage_discrete(y, [0.5] * 4, [3.2] * 4) == pytest.approx(0.5)      # [0, 4]: 0 and 1
+    assert interval_coverage_discrete(y, [1.5] * 4, [3.2] * 4) == pytest.approx(0.25)     # [1, 4]: 1 only

@@ -1,5 +1,6 @@
 """Quantile machinery: sorting, and why the target is the quantile of the P-day sum. Exact pmf arithmetic, no simulation noise."""
 import numpy as np
+import pytest
 
 from metrics import pinball
 from quantiles import sort_quantiles
@@ -37,3 +38,22 @@ def test_quantile_of_the_sum_is_not_the_sum_of_daily_quantiles():
     assert (daily, total) == (2, 10)
     assert 7 * daily == 14 and 7 * daily > total
 
+
+
+from quantiles import normal_z, pooled_sigma, point_policy_quantile
+
+
+def test_normal_z_values():
+    assert normal_z(0.5) == 0.0 and normal_z(0.9) == pytest.approx(1.2815515655446004) and normal_z(0.99) == pytest.approx(2.3263478740408408)
+
+
+def test_pooled_sigma_is_the_rmse_by_segment():
+    r = pooled_sigma([1, -1, 2, 0], ["a", "a", "b", "b"])           # a: sqrt((1+1)/2) = 1; b: sqrt((4+0)/2)
+    assert r["a"] == pytest.approx(1.0) and r["b"] == pytest.approx(np.sqrt(2))
+
+
+def test_point_policy_quantile_hand():
+    # yhat 10, sigma 0.5 (normalised), scale 4: 10 + 1.2815515655 * 0.5 * 4
+    assert point_policy_quantile(10, 0.5, 4, 0.9) == pytest.approx(12.563103131089201)
+    assert point_policy_quantile(10, 0.5, 4, 0.5) == pytest.approx(10.0)
+    assert point_policy_quantile(1, 1.0, 2, 0.1) == 0.0                # 1 - 2.563 < 0 is clipped

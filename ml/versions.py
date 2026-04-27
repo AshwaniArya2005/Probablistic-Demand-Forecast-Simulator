@@ -44,3 +44,9 @@ def use_dates(v):
     nxt = CUTOFFS.get(v + 1)
     d = review_dates()
     return d[(d >= c) & ((d < nxt) if nxt is not None else (d <= LAST_REVIEW))]
+
+
+def calibration_sundays(origin_dates, c, P):
+    """the Sunday origins of the calibration window: what conformal calibration and sigma estimation use (daily origins overlap and are dependent)"""
+    d = pd.DatetimeIndex(origin_dates)
+    return calibration_mask(d, c, P) & (d.dayofweek == 6)

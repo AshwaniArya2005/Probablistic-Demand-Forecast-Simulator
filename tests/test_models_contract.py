@@ -12,6 +12,12 @@ from models import REGISTRY
 PARAMS = [(n, P) for n in REGISTRY for P in PS]
 IDS = [f"{n}-P{P}" for n, P in PARAMS]
 ALPHAS = [0.1, 0.5, 0.8, 0.9, 0.95, 0.99]
+# contract checks are about behaviour (shape, determinism, causality, save/load), not accuracy, so learned models run with small budgets
+FAST = {"rf": dict(n_estimators=20), "xgb": dict(max_rounds=60, fixed_rounds=60), "xgb_q": dict(max_rounds=60, fixed_rounds=60)}
+
+
+def make(name, P, seed=0):
+    return REGISTRY[name](P, seed=seed, **FAST.get(name, {}))
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +36,7 @@ def frames(feats, cut, P):
 def test_shape_finite_nonnegative(name, P, split):
     cut, feats = split
     train, test = frames(feats, cut, P)
-    m = REGISTRY[name](P, seed=0).fit(train, train[f"y_p{P}"])
+    m = make(name, P, seed=0).fit(train, train[f"y_p{P}"])
     p = m.predict(test)
     assert p.shape == (len(test),)
     assert np.isfinite(p).all() and (p >= 0).all()
@@ -43,7 +49,7 @@ def test_fit_does_not_mutate_inputs(name, P, split):
     train, _ = frames(feats, cut, P)
     y = train[f"y_p{P}"].copy()
     before = train.copy()
-    REGISTRY[name](P, seed=0).fit(train, y)
+    make(name, P, seed=0).fit(train, y)
     pd.testing.assert_frame_equal(train, before)
     pd.testing.assert_series_equal(train[f"y_p{P}"], y)
 
@@ -52,8 +58,8 @@ def test_fit_does_not_mutate_inputs(name, P, split):
 def test_seeded_determinism(name, P, split):
     cut, feats = split
     train, test = frames(feats, cut, P)
-    a = REGISTRY[name](P, seed=7).fit(train, train[f"y_p{P}"]).predict(test)
-    b = REGISTRY[name](P, seed=7).fit(train, train[f"y_p{P}"]).predict(test)
+    a = make(name, P, seed=7).fit(train, train[f"y_p{P}"]).predict(test)
+    b = make(name, P, seed=7).fit(train, train[f"y_p{P}"]).predict(test)
     assert np.array_equal(a, b)
 
 
@@ -61,7 +67,7 @@ def test_seeded_determinism(name, P, split):
 def test_save_load_round_trip(name, P, split, tmp_path):
     cut, feats = split
     train, test = frames(feats, cut, P)
-    m = REGISTRY[name](P, seed=3).fit(train, train[f"y_p{P}"])
+    m = make(name, P, seed=3).fit(train, train[f"y_p{P}"])
     m.save(tmp_path / "m.json")
     m2 = models.load(tmp_path / "m.json")
     assert type(m2) is type(m) and m2.P == P
@@ -88,7 +94,7 @@ def check_causality(m, test, P):
 def test_causality_prediction_depends_only_on_its_own_inputs(name, P, split):
     cut, feats = split
     train, test = frames(feats, cut, P)
-    check_causality(REGISTRY[name](P, seed=0).fit(train, train[f"y_p{P}"]), test, P)
+    check_causality(make(name, P, seed=0).fit(train, train[f"y_p{P}"]), test, P)
 
 
 class _ReadsTheTarget(models.Naive):
@@ -117,7 +123,7 @@ def test_dead_and_short_series(name, P, split):
     """a series that died (all-zero history) and one with under a year of history (no seasonal window) still get finite, non-negative forecasts"""
     cut, feats = split
     train, test = frames(feats, cut, P)
-    m = REGISTRY[name](P, seed=0).fit(train, train[f"y_p{P}"])
+    m = make(name, P, seed=0).fit(train, train[f"y_p{P}"])
     for sid in ("DEAD_CA_2", "SHORT_CA_3"):
         rows = test[test.id == sid]
         assert len(rows) > 0, f"fixture has no test rows for {sid}"
@@ -133,7 +139,7 @@ QUANTILE = [(n, P) for n, P in PARAMS if REGISTRY[n].kind == "quantile"]
 def test_quantile_models_return_sorted_nonnegative_quantiles(name, P, split):
     cut, feats = split
     train, test = frames(feats, cut, P)
-    m = REGISTRY[name](P, seed=0).fit(train, train[f"y_p{P}"])
+    m = make(name, P, seed=0).fit(train, train[f"y_p{P}"])
     q = m.predict_quantiles(test, ALPHAS)
     assert q.shape == (len(test), len(ALPHAS)) and np.isfinite(q).all() and (q >= 0).all()
     assert (np.diff(q, axis=1) >= 0).all(), "quantiles cross"

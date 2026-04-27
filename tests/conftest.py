@@ -30,9 +30,15 @@ def make_world(seed=0):
     cal = pd.DataFrame({"n_snap": dates.day <= 10, "n_event": np.any(list(ev.values()), axis=0) | (k % 45 == 0),
                         **{f"n_{t.lower()}": v for t, v in ev.items()}, "n_weekend": weekend, "n_closed": closed},
                        index=dates)[CAL_COLS].astype("int8")
-    static = pd.DataFrame({"item_id": [i.split("_")[0] for i in IDS], "store_id": [i[-4:] for i in IDS],
+    static = pd.DataFrame({"item_id": ["ITEMX", "ITEMX", "ITEMX", "ITEMD", "ITEMS"], "store_id": [i[-4:] for i in IDS],
                            "dept_id": "D1", "cat_id": "C1"}, index=IDS)[STATIC]
     return sales, price, cal, static
+
+
+def make_events(dates):
+    """named events: two recurring, one that happens once (Gamma)"""
+    k = np.arange(len(dates))
+    return pd.DataFrame({"Alpha": (k % 50 == 0), "Beta": (k % 120 == 7), "Gamma": (k == 400)}, index=dates).astype("int8")
 
 
 @pytest.fixture(scope="session")
