@@ -154,3 +154,8 @@ def test_xgbq_crossing_is_fixed_by_sorting_but_reported(feats):
     srt = m.predict_quantiles(feats, ALPHAS)
     assert (np.diff(srt, axis=1) >= 0).all()
     assert m.crossing_share(feats) == pytest.approx(float((np.diff(raw, axis=1) < 0).any(axis=1).mean()))
+
+
+def test_xgb_thread_count_is_passed_only_when_set():
+    assert XGB(7, nthread=2)._param()["nthread"] == 2 and XGBQ(7, nthread=2)._param()["nthread"] == 2
+    assert "nthread" not in XGB(7)._param() and "nthread" not in XGBQ(7)._param()

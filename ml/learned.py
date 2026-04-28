@@ -136,7 +136,8 @@ class XGB(_Trees):
     def _param(self):
         p = self.params
         return dict(objective="reg:squarederror", tree_method="hist", learning_rate=p["learning_rate"], max_depth=p["max_depth"],
-                    min_child_weight=p["min_child_weight"], subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, seed=self.seed)
+                    min_child_weight=p["min_child_weight"], subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, seed=self.seed,
+                    **({"nthread": p["nthread"]} if p.get("nthread") else {}))         # fixed thread count keeps runs reproducible
 
     def _fit(self, X, y):
         p, M, param = self.params, self._matrix(X, True), self._param()

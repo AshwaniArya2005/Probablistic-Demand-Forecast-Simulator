@@ -41,10 +41,20 @@ These use dates after `t` on purpose (design section 4, known-prices assumption)
 
 - **Velocity segment.** Its label uses sales up to 2015-08-30, which is the future for any origin before that. It is for sampling, pooling and reporting only. The test asserts it is absent.
 - **Anything computed from sales after `t`** other than the target. The test checks this by scrambling sales after an origin and rebuilding: no feature at or before that origin moves, while the targets whose windows reach past it do move (so the test can see a leak).
-- **Cross-store zero-run features** (are the item's other stores also at zero?). Zero runs are strongly simultaneous across an item's three stores (design section 12), so this is a natural candidate. It is legitimate (other stores' history up to `t`) but is not in the first version. Add it only if it helps on the tuning folds.
+- **Cross-store zero-run and named-event features** are built but opt-in: they enter a model only if their Phase 7 tuning-fold ablation passes (see the last section).
 
-## Checks (`uv run python ml/test_features.py`)
+## Checks (`uv run pytest tests/test_features.py`; `-m realdata` repeats them on the real panel)
 
 1. Structure: no target column in model inputs, the ablation drops exactly the two future-price columns, no segment feature, the closed flag is only Dec 25.
 2. Brute-force reference: 85 (series, origin) pairs, including origins around Dec 25 and the 1,578-day-lead series, recomputed with plain loops from the panel for all three horizons; 9,180 feature and target values match.
 3. Perturbation (origin 2014-06-15): scrambling sales after it changes no feature at or before it; scrambling prices after it changes no feature except the future-price windows that reach past it (and prices never change the target).
+
+## Phase 7 candidate groups (opt-in; not part of `columns(P)`)
+
+Pre-registered in design.md section 12 (amendment to the Phase 7 pre-registration). They are always built into the features table but only enter a model through `columns(P, ev=..., xs=True)`, and only if their tuning-fold ablation passes (added iff mean scaled pinball falls by at least 0.5% relative). Both have brute-force reference and sales-perturbation leakage tests in `tests/test_features.py`.
+
+| Feature | Definition | Leakage note |
+|---|---|---|
+| `ev_<name>_p{P}` (30 named events x 3 horizons) | 1 if a named calendar event (`event_name_1` or `_2`) falls in `t+1..t+P`, else 0. Events: those occurring on at least 3 dates on or before the tuning cutoff (all 30: Easter, Christmas, Thanksgiving, SuperBowl, ...) | The event calendar is public in advance. The list depends on calendar dates only, never on sales. Unchanged by scrambling sales or prices (tested). |
+| `other_zero_run_91` | mean over the item's *other* stores on sale at `t` of their `zero_run_91` (capped 56) | Uses sibling stores' history on or before `t` only. NaN if no other store is on sale (an item with a single store). Unchanged when sales after `t` are scrambled (tested). |
+| `other_zero_28` | number of the item's other stores on sale at `t` (0 to 2) whose sales over the last 28 open days sum to zero (needs 27 observations) | Same: sibling history on or before `t`. NaN if no sibling has a defined value. |

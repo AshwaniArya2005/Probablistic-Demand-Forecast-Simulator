@@ -5,6 +5,7 @@ Stages (resumable, cached in data/processed/phase7_cache.json): A floor -> B sea
 benchmarks and conformal -> report.  Run: uv run python ml/tune_quantile.py [floor|search|groups|final|report|all]"""
 import functools
 import json
+import os
 import subprocess
 import sys
 import time
@@ -24,7 +25,9 @@ from folds import FOLDS, assert_tuning_only, origins, select
 from learned import XGBQ
 from models import REGISTRY
 
-CACHE = PROCESSED / "phase7_cache.json"
+SHARD, NSHARD = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 else (0, 1)          # split the fits over processes: tune_quantile.py <stage> <i> <n>
+CACHE = PROCESSED / ("phase7_cache.json" if NSHARD == 1 else f"phase7_cache_{SHARD}.json")      # each process writes its own file, all are merged on start
+NTHREAD = int(os.environ.get("XGB_THREADS", 2))                                                    # one fixed thread count for every XGBoost fit
 CELLS = [(f, P) for f in FOLDS for P in PS]
 ALPHAS = XGBQ.ALPHAS
 SERVICE = (0.80, 0.90, 0.95, 0.99)
@@ -38,14 +41,21 @@ SEGS = ("low", "mid", "high")
 feats = pd.read_parquet(PROCESSED / "features.parquet")
 seg = pd.read_parquet(PROCESSED / "panel.parquet", columns=["id", "segment"]).drop_duplicates("id").set_index("id").segment
 EV = sorted({c[3:-3] for c in feats.columns if c.startswith("ev_") and c.endswith("_p7")})
-cache = {(e["k"], tuple(e["c"])): e["r"] for e in json.loads(CACHE.read_text())} if CACHE.exists() else {}
+cache = {(e["k"], tuple(e["c"])): e["r"] for f in sorted(PROCESSED.glob("phase7_cache*.json")) for e in json.loads(f.read_text())}
+
+
+mine = {(e["k"], tuple(e["c"])): e["r"] for e in json.loads(CACHE.read_text())} if CACHE.exists() else {}      # this process's own results
+
+
+def put(k, c, r):
+    cache[(k, c)] = mine[(k, c)] = r
 
 
 def save_cache():
-    CACHE.write_text(json.dumps([{"k": k, "c": list(c), "r": r} for (k, c), r in cache.items()], default=float))
+    CACHE.write_text(json.dumps([{"k": k, "c": list(c), "r": r} for (k, c), r in mine.items()], default=float))
 
 
-@functools.lru_cache(maxsize=3)
+@functools.lru_cache(maxsize=1)          # one cell at a time keeps each shard near 1 GB
 def cell_data(fold, P):
     c = origins(fold).min()
     fit = feats[versions.fit_mask(feats.date, c, P)]
@@ -110,18 +120,19 @@ def key(s):
 
 def run(specs, label):
     """specs: (variant, cfg, arm, floor); fits every uncached (spec, cell), cell-outermost so cell data is built once."""
-    todo = [(s, c) for c in CELLS for s in specs if (key(s), c) not in cache]
-    print(f"[{label}] {len(todo)} fits to run ({len(specs) * len(CELLS) - len(todo)} cached)", flush=True)
+    pending = [(s, c) for c in CELLS for s in specs if (key(s), c) not in cache]
+    todo = pending[SHARD::NSHARD]
+    print(f"[{label}] shard {SHARD}/{NSHARD}: {len(todo)} of {len(pending)} pending fits ({len(specs) * len(CELLS) - len(pending)} already cached)", flush=True)
     t0, n = time.time(), 0
     for (var, cfg, arm, floor), (fold, P) in todo:
         fit, sel, cal, nscale = cell_data(fold, P)
         t = time.time()
-        m = XGBQ(P, seed=0, columns=cols_for(P, var, arm), normalize=(var == "norm"), floor=floor or 1 / 14, **cfg).fit(fit, fit[f"y_p{P}"])
+        m = XGBQ(P, seed=0, columns=cols_for(P, var, arm), normalize=(var == "norm"), floor=floor or 1 / 14, nthread=NTHREAD, **cfg).fit(fit, fit[f"y_p{P}"])
         secs = time.time() - t
         r = qrecord(m.predict_quantiles(sel, ALPHAS), sel, P, nscale)
         r.update(fold=fold, P=P, n_fit=len(fit), fit_seconds=round(secs, 1), n_rounds=int(m.n_rounds_), hit_cap=bool(m.hit_cap_),
                  crossing_share=m.crossing_share(sel))
-        cache[(key((var, cfg, arm, floor)), (fold, P))] = r
+        put(key((var, cfg, arm, floor)), (fold, P), r)
         n += 1
         if n % 4 == 0 or n == len(todo):
             save_cache()
@@ -172,11 +183,19 @@ def stage_groups(floor):
     var = adopted(floor)
     cfg = selected_cfg(var, floor)
     print(f"adopted variant: {var}, config {cfg}", flush=True)
-    arms = ["base", "ev", "xs", "ids_all", "ids_noitem", "yearago_flip", "nofutprice"]
-    run([spec(var, cfg, a, floor) for a in arms], "D groups + sensitivities")
+    run([spec(var, cfg, a, floor) for a in ("base", "ev", "xs")], "D feature groups")
     for a in ("ev", "xs"):
         print(f"group {a}: base {mean_sp(spec(var, cfg, 'base', floor)):.4f} with {mean_sp(spec(var, cfg, a, floor)):.4f} -> add: "
               f"{selection.add_group(mean_sp(spec(var, cfg, 'base', floor)), mean_sp(spec(var, cfg, a, floor)))}", flush=True)
+
+
+def stage_sens(floor):
+    """report-only sensitivities at the adopted variant: ids, year-ago flipped, future price removed, and the round-cap check (learning rate 0.1)"""
+    var = adopted(floor)
+    cfg = selected_cfg(var, floor)
+    fa = final_arm(var, cfg, floor)
+    run([spec(var, cfg, a, floor) for a in ("ids_all", "ids_noitem", "yearago_flip", "nofutprice")]
+        + [spec(var, dict(cfg, learning_rate=0.1), fa, floor)], "S sensitivities (report-only)")
 
 
 def final_arm(var, cfg, floor):
@@ -191,13 +210,13 @@ def stage_final(floor):
     arm = final_arm(var, cfg, floor)
     print(f"final: variant {var}, config {cfg}, feature arm {arm}", flush=True)
     t0 = time.time()
-    for fold, P in CELLS:
+    for idx, (fold, P) in enumerate(CELLS):
         ck = key(("final", var, cfg, arm, floor))
-        if (ck, (fold, P)) in cache:
+        if (ck, (fold, P)) in cache or idx % NSHARD != SHARD:
             continue
         fit, sel, cal, nscale = cell_data(fold, P)
         cols, y = cols_for(P, var, arm), fit[f"y_p{P}"]
-        m = XGBQ(P, seed=0, columns=cols, normalize=(var == "norm"), floor=floor or 1 / 14, **cfg).fit(fit, y)
+        m = XGBQ(P, seed=0, columns=cols, normalize=(var == "norm"), floor=floor or 1 / 14, nthread=NTHREAD, **cfg).fit(fit, y)
         Qe, Qc = m.predict_quantiles(sel, ALPHAS), m.predict_quantiles(cal, ALPHAS)
         fl = floor or 1 / 14
         sc_e, sc_c = scale_of(sel, P, fl), scale_of(cal, P, fl)
@@ -218,7 +237,7 @@ def stage_final(floor):
         out["conformal_info"] = info
         # benchmarks: the point policy's quantile, yhat + z sigma_seg scale, sigma pooled by segment on the calibration window
         yhat = {"B1_ma28": (REGISTRY["ma28"](P).predict(sel), REGISTRY["ma28"](P).predict(cal))}
-        for nm, mk in (("B2_xgb", lambda: REGISTRY["xgb"](P, seed=0, columns=cols_for(P, var, arm), normalize=(var == "norm"), floor=fl, **POINT_CFG)),
+        for nm, mk in (("B2_xgb", lambda: REGISTRY["xgb"](P, seed=0, columns=cols_for(P, var, arm), normalize=(var == "norm"), floor=fl, nthread=NTHREAD, **POINT_CFG)),
                        ("C_rf", lambda: REGISTRY["rf"](P, seed=0, columns=cols_for(P, var, arm), **RF_CFG))):
             pm = mk().fit(fit, y)
             yhat[nm] = (pm.predict(sel), pm.predict(cal))
@@ -229,7 +248,7 @@ def stage_final(floor):
             out[nm] = qrecord(Qb, sel, P, nscale)
             out[nm]["point_wape"] = metrics.wape(sel[f"y_p{P}"].to_numpy("float64"), pe)
         out["meta"] = dict(fold=fold, P=P, n_rounds=int(m.n_rounds_), hit_cap=bool(m.hit_cap_), crossing_share=m.crossing_share(sel))
-        cache[(ck, (fold, P))] = out
+        put(ck, (fold, P), out)
         save_cache()
         print(f"  final cell {fold} P={P} done ({time.time() - t0:.0f}s)", flush=True)
 
@@ -276,8 +295,10 @@ def stage_report(floor):
               + f"\n\nRelative change of normalised vs raw: mean {mean_sp(n) / mean_sp(r) - 1:+.2%}, median {mean_spmed(n) / mean_spmed(r) - 1:+.2%}. **Adopted variant: {var}.**\n")
     # Step D
     d = []
-    for a in ("base", "ev", "xs", "ids_all", "ids_noitem", "yearago_flip", "nofutprice"):
-        s = spec(var, cfg, a, floor)
+    for a in ("base", "ev", "xs", "ids_all", "ids_noitem", "yearago_flip", "nofutprice", "final_lr0.1"):
+        s = spec(var, dict(cfg, learning_rate=0.1), arm, floor) if a == "final_lr0.1" else spec(var, cfg, a, floor)
+        if (key(s), CELLS[0]) not in cache:
+            continue
         cc = cells_of(s)
         d.append(dict(arm=a, mean_sp=round(cc.sp_mean.mean(), 4), median_sp=round(cc.sp_median.mean(), 4), F2_mean_sp=round(cc[cc.fold == "F2"].sp_mean.mean(), 4),
                       vs_base=f"{cc.sp_mean.mean() / mean_sp(spec(var, cfg, 'base', floor)) - 1:+.2%}", WAPE_of_median=round(cc.wape_median.mean(), 4),
@@ -351,5 +372,7 @@ if __name__ == "__main__":
         stage_groups(fl)
     if what in ("final", "all"):
         stage_final(fl)
+    if what in ("sens", "all"):
+        stage_sens(fl)
     if what in ("report", "all"):
         stage_report(fl)
