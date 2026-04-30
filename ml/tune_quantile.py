@@ -27,7 +27,7 @@ from models import REGISTRY
 
 SHARD, NSHARD = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 else (0, 1)          # split the fits over processes: tune_quantile.py <stage> <i> <n>
 CACHE = PROCESSED / ("phase7_cache.json" if NSHARD == 1 else f"phase7_cache_{SHARD}.json")      # each process writes its own file, all are merged on start
-NTHREAD = int(os.environ.get("XGB_THREADS", 2))                                                    # one fixed thread count for every XGBoost fit
+NTHREAD = int(os.environ.get("XGB_THREADS", 5))                                                    # one fixed thread count for every XGBoost fit
 CELLS = [(f, P) for f in FOLDS for P in PS]
 ALPHAS = XGBQ.ALPHAS
 SERVICE = (0.80, 0.90, 0.95, 0.99)
