@@ -155,10 +155,21 @@ def spec(var, cfg, arm="base", floor=None):
     return (var, cfg, arm, floor if var == "norm" else None)
 
 
+def summarise(fn):
+    """print a summary only when every shard's results are merged in; a shard that finishes first has an incomplete view (its cache is read at start)"""
+    try:
+        fn()
+    except KeyError:
+        print("(summary skipped: other shards' results are not merged into this process; see the report)", flush=True)
+
+
 def stage_floor():
     run([spec("norm", FLOOR_CFG, floor=f) for f in FLOORS], "A floor")
-    v = {f: mean_sp(spec("norm", FLOOR_CFG, floor=f)) for f in FLOORS}
-    print("floor candidates (mean scaled pinball):", {round(k, 4): round(x, 4) for k, x in v.items()}, "->", round(selection.choose_floor_rel(v), 4), flush=True)
+
+    def show():
+        v = {f: mean_sp(spec("norm", FLOOR_CFG, floor=f)) for f in FLOORS}
+        print("floor candidates (mean scaled pinball):", {round(k, 4): round(x, 4) for k, x in v.items()}, "->", round(selection.choose_floor_rel(v), 4), flush=True)
+    summarise(show)
 
 
 def chosen_floor():
@@ -185,8 +196,8 @@ def stage_groups(floor):
     print(f"adopted variant: {var}, config {cfg}", flush=True)
     run([spec(var, cfg, a, floor) for a in ("base", "ev", "xs")], "D feature groups")
     for a in ("ev", "xs"):
-        print(f"group {a}: base {mean_sp(spec(var, cfg, 'base', floor)):.4f} with {mean_sp(spec(var, cfg, a, floor)):.4f} -> add: "
-              f"{selection.add_group(mean_sp(spec(var, cfg, 'base', floor)), mean_sp(spec(var, cfg, a, floor)))}", flush=True)
+        summarise(lambda a=a: print(f"group {a}: base {mean_sp(spec(var, cfg, 'base', floor)):.4f} with {mean_sp(spec(var, cfg, a, floor)):.4f} -> add: "
+                                    f"{selection.add_group(mean_sp(spec(var, cfg, 'base', floor)), mean_sp(spec(var, cfg, a, floor)))}", flush=True))
 
 
 def stage_sens(floor):
