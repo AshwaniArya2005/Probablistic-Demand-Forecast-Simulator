@@ -13,6 +13,7 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 import conformal
 import metrics
@@ -25,7 +26,7 @@ from folds import FOLDS, assert_tuning_only, origins, select
 from learned import XGBQ
 from models import REGISTRY
 
-SHARD, NSHARD = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 else (0, 1)          # split the fits over processes: tune_quantile.py <stage> <i> <n>
+SHARD, NSHARD = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 and sys.argv[2].isdigit() and sys.argv[3].isdigit() else (0, 1)          # split the fits over processes: tune_quantile.py <stage> <i> <n>
 CACHE = PROCESSED / ("phase7_cache.json" if NSHARD == 1 else f"phase7_cache_{SHARD}.json")      # each process writes its own file, all are merged on start
 NTHREAD = int(os.environ.get("XGB_THREADS", 5))                                                    # one fixed thread count for every XGBoost fit
 CELLS = [(f, P) for f in FOLDS for P in PS]
@@ -38,9 +39,12 @@ POINT_CFG = dict(max_depth=3, min_child_weight=30)                              
 RF_CFG = dict(max_depth=10, min_samples_leaf=20)                                          # Phase 6 selected RF config (raw), comparison only
 SEGS = ("low", "mid", "high")
 
-feats = pd.read_parquet(PROCESSED / "features.parquet")
+STAGE = sys.argv[1] if len(sys.argv) > 1 else "all"
+ALLCOLS = pq.read_schema(PROCESSED / "features.parquet").names
+NEEDS_EV = STAGE in ("groups", "final", "sens", "report", "all")          # the 90 event columns are only used from the feature-group stage on: skip them to halve the load peak
+feats = pd.read_parquet(PROCESSED / "features.parquet", columns=[c for c in ALLCOLS if NEEDS_EV or not c.startswith("ev_")])
 seg = pd.read_parquet(PROCESSED / "panel.parquet", columns=["id", "segment"]).drop_duplicates("id").set_index("id").segment
-EV = sorted({c[3:-3] for c in feats.columns if c.startswith("ev_") and c.endswith("_p7")})
+EV = sorted({c[3:-3] for c in ALLCOLS if c.startswith("ev_") and c.endswith("_p7")})
 cache = {(e["k"], tuple(e["c"])): e["r"] for f in sorted(PROCESSED.glob("phase7_cache*.json")) for e in json.loads(f.read_text())}
 
 
