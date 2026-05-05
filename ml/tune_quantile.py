@@ -209,8 +209,10 @@ def stage_sens(floor):
     var = adopted(floor)
     cfg = selected_cfg(var, floor)
     fa = final_arm(var, cfg, floor)
-    run([spec(var, cfg, a, floor) for a in ("ids_all", "ids_noitem", "yearago_flip", "nofutprice")]
-        + [spec(var, dict(cfg, learning_rate=0.1), fa, floor)], "S sensitivities (report-only)")
+    specs = [spec(var, cfg, a, floor) for a in ("ids_all", "ids_noitem", "yearago_flip", "nofutprice")] + [spec(var, dict(cfg, learning_rate=0.1), fa, floor)]
+    if var == "norm":      # added after Step C: the round cap binds harder on the raw target, so check the other variant at learning rate 0.1 too
+        specs.append(spec("raw", dict(selected_cfg("raw", floor), learning_rate=0.1), "base", floor))
+    run(specs, "S sensitivities (report-only)")
 
 
 def final_arm(var, cfg, floor):
@@ -306,6 +308,12 @@ def stage_report(floor):
         cmp.append(dict(variant=nm, mean_sp=round(cc.sp_mean.mean(), 4), median_sp=round(cc.sp_median.mean(), 4), F2_mean_sp=round(cc[cc.fold == "F2"].sp_mean.mean(), 4),
                         sp_low=round(cc.sp_low.mean(), 4), sp_mid=round(cc.sp_mid.mean(), 4), sp_high=round(cc.sp_high.mean(), 4),
                         WAPE_of_median=round(cc.wape_median.mean(), 4), MASE_of_median=round(cc.mase_median_fc.mean(), 3)))
+    rs = spec("raw", dict(selected_cfg("raw", floor), learning_rate=0.1), "base", floor)
+    if (key(rs), CELLS[0]) in cache:                # report-only, added after Step C: raw at learning rate 0.1 (the round cap binds harder on raw)
+        cc = cells_of(rs)
+        cmp.append(dict(variant="raw, learning rate 0.1 (report-only)", mean_sp=round(cc.sp_mean.mean(), 4), median_sp=round(cc.sp_median.mean(), 4),
+                        F2_mean_sp=round(cc[cc.fold == "F2"].sp_mean.mean(), 4), sp_low=round(cc.sp_low.mean(), 4), sp_mid=round(cc.sp_mid.mean(), 4),
+                        sp_high=round(cc.sp_high.mean(), 4), WAPE_of_median=round(cc.wape_median.mean(), 4), MASE_of_median=round(cc.mase_median_fc.mean(), 3)))
     md.append(f"## Step C: normalisation decision (both mean and median must win by >= 1% relative)\n\n" + pd.DataFrame(cmp).to_markdown(index=False)
               + f"\n\nRelative change of normalised vs raw: mean {mean_sp(n) / mean_sp(r) - 1:+.2%}, median {mean_spmed(n) / mean_spmed(r) - 1:+.2%}. **Adopted variant: {var}.**\n")
     # Step D
