@@ -270,6 +270,27 @@ def stage_final(floor):
         print(f"  final cell {fold} P={P} done ({time.time() - t0:.0f}s)", flush=True)
 
 
+def stage_bench(floor):
+    """report-only, added after seeing the final results: the point policy built from the frozen Phase 6 raw XGBoost (all Phase 6 features, raw target),
+    because the pipeline-wide normalisation choice makes the shared-set point model (B2) less accurate on WAPE than that model"""
+    ck = key(("final_b", "phase6_raw_xgb", floor))
+    for idx, (fold, P) in enumerate(CELLS):
+        if (ck, (fold, P)) in cache or idx % NSHARD != SHARD:
+            continue
+        fit, sel, cal, nscale = cell_data(fold, P)
+        m = REGISTRY["xgb"](P, seed=0, nthread=NTHREAD, **POINT_CFG).fit(fit, fit[f"y_p{P}"])
+        pe, pc = m.predict(sel), m.predict(cal)
+        sc_e, sc_c = scale_of(sel, P, floor), scale_of(cal, P, floor)
+        yc, sgc, sge = cal[f"y_p{P}"].to_numpy("float64"), cal.id.map(seg).to_numpy(), sel.id.map(seg).to_numpy()
+        sig = quantiles.pooled_sigma((yc - pc) / sc_c.to_numpy(), sgc)
+        Qb = np.column_stack([quantiles.point_policy_quantile(pe, np.array([sig[s] for s in sge]), sc_e.to_numpy(), a) for a in ALPHAS])
+        r = qrecord(Qb, sel, P, nscale)
+        r["point_wape"] = metrics.wape(sel[f"y_p{P}"].to_numpy("float64"), pe)
+        put(ck, (fold, P), {"B2_raw": r})
+        save_cache()
+        print(f"  bench cell {fold} P={P} done", flush=True)
+
+
 def flat(d, prefix=""):
     return {f"{prefix}{k}": v for k, v in d.items() if not isinstance(v, dict)}
 
@@ -333,11 +354,17 @@ def stage_report(floor):
     # Step E
     ck = key(("final", var, cfg, arm, floor))
     fin = {c: cache[(ck, c)] for c in CELLS if (ck, c) in cache}
+    ckb = key(("final_b", "phase6_raw_xgb", floor))
+    if len(fin) == len(CELLS) and all((ckb, c) in cache for c in CELLS):          # report-only extra benchmark, if it has been run
+        for c in CELLS:
+            fin[c] = {**fin[c], **cache[(ckb, c)]}
     if len(fin) == len(CELLS):
         def table(name):
             return pd.DataFrame([flat(fin[c][name]) | dict(fold=c[0], P=c[1]) for c in CELLS])
         names = {"quantile_model": "XGBoost quantile (headline)", "conformal": "XGBoost quantile + conformal (variant)", "B1_ma28": "B1: MA-28 + normal sigma",
                  "B2_xgb": "B2: XGBoost mean + normal sigma (point policy)", "C_rf": "C: RF mean + normal sigma (comparison only)"}
+        if "B2_raw" in fin[CELLS[0]]:
+            names["B2_raw"] = "B2': frozen Phase 6 raw XGBoost + normal sigma (report-only)"
         summ, f2 = [], []
         for k, nm in names.items():
             t = table(k)
@@ -352,7 +379,8 @@ def stage_report(floor):
                   + "\n\n### F2 (holiday fold) only\n\n" + pd.DataFrame(f2).set_index("method").round(4).to_markdown() + "\n")
         perP = pd.DataFrame([{**dict(P=c[1], fold=c[0]), **{nm: fin[c][k]["sp_mean"] for k, nm in names.items()}} for c in CELLS]).groupby("P").mean(numeric_only=True)
         md.append("### Mean scaled pinball by horizon\n\n" + perP.round(4).to_markdown() + "\n")
-        for k, nm in ((("quantile_model"), "quantile model"), ("conformal", "quantile model + conformal"), ("B2_xgb", "B2 point policy (XGBoost mean + normal)")):
+        for k, nm in ((("quantile_model"), "quantile model"), ("conformal", "quantile model + conformal"), ("B2_xgb", "B2 point policy (XGBoost mean + normal)"),
+                       *((("B2_raw", "B2' frozen Phase 6 raw XGBoost + normal (report-only)"),) if "B2_raw" in names else ())):
             t = table(k)
             rows = []
             for a in SERVICE:
@@ -378,7 +406,7 @@ def stage_report(floor):
                   f"Mean share of rows with crossing quantiles before sorting: {metaf.crossing_share.mean():.3f}.\n")
         pd.DataFrame([{**dict(method=k, fold=c[0], P=c[1]), **flat(fin[c][k])} for c in CELLS for k in names]).round(5).to_csv(out / "phase7_quantile_final_cells.csv", index=False)
     allr = pd.DataFrame([{**dict(variant=json.loads(k)[0], cfg=json.dumps(json.loads(k)[1]), arm=json.loads(k)[2], floor=json.loads(k)[3]), **flat(r)}
-                         for (k, c), r in cache.items() if not k.startswith('["final"')])
+                         for (k, c), r in cache.items() if not k.startswith('["final')])          # per-fit records only (final and final_b hold nested results)
     allr.round(5).to_csv(out / "phase7_quantile_all_fits.csv", index=False)
     (out / "phase7_quantile_tuning.md").write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))
@@ -397,5 +425,7 @@ if __name__ == "__main__":
         stage_final(fl)
     if what in ("sens", "all"):
         stage_sens(fl)
+    if what in ("bench", "all"):
+        stage_bench(fl)
     if what in ("report", "all"):
         stage_report(fl)
