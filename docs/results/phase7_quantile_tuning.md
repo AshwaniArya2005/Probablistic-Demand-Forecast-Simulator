@@ -1,6 +1,6 @@
 # Phase 7 quantile forecasts on the tuning folds
 
-Run 2026-09-21 at code commit `45c581d` (uncommitted changes in ml/ or tests/). Tuning folds only; nothing evaluated on the test window (touch log unchanged). One model version per fold and horizon (fit set ends at c - 84 days; 12 Sunday evaluation origins; the reserved calibration window feeds sigma and conformal offsets only). Rules: design.md section 12, Phase 7 pre-registration and its amendment. Scaled pinball = per-series mean pinball / naive-P scale, averaged over the six quantiles; 'mean' and 'median' are over series. Means are over the 12 fold x horizon cells unless stated.
+Run 2026-09-21 at code commit `549dd6f`. Tuning folds only; nothing evaluated on the test window (touch log unchanged). One model version per fold and horizon (fit set ends at c - 84 days; 12 Sunday evaluation origins; the reserved calibration window feeds sigma and conformal offsets only). Rules: design.md section 12, Phase 7 pre-registration and its amendment. Scaled pinball = per-series mean pinball / naive-P scale, averaged over the six quantiles; 'mean' and 'median' are over series. Means are over the 12 fold x horizon cells unless stated.
 
 ## Step A: scale floor (XGBoost quantile, depth 3 / min_child_weight 30, normalised)
 
@@ -27,10 +27,11 @@ Chosen: **0.1429** (rule: within 0.5% relative of the best is tied and goes to 1
 
 ## Step C: normalisation decision (both mean and median must win by >= 1% relative)
 
-| variant    |   mean_sp |   median_sp |   F2_mean_sp |   sp_low |   sp_mid |   sp_high |   WAPE_of_median |   MASE_of_median |
-|:-----------|----------:|------------:|-------------:|---------:|---------:|----------:|-----------------:|-----------------:|
-| raw        |    0.2839 |      0.2049 |       0.2506 |   0.4018 |   0.2359 |    0.2159 |           0.3572 |            0.994 |
-| normalised |    0.2639 |      0.1861 |       0.2315 |   0.3564 |   0.2252 |    0.2116 |           0.3579 |            0.993 |
+| variant                              |   mean_sp |   median_sp |   F2_mean_sp |   sp_low |   sp_mid |   sp_high |   WAPE_of_median |   MASE_of_median |
+|:-------------------------------------|----------:|------------:|-------------:|---------:|---------:|----------:|-----------------:|-----------------:|
+| raw                                  |    0.2839 |      0.2049 |       0.2506 |   0.4018 |   0.2359 |    0.2159 |           0.3572 |            0.994 |
+| normalised                           |    0.2639 |      0.1861 |       0.2315 |   0.3564 |   0.2252 |    0.2116 |           0.3579 |            0.993 |
+| raw, learning rate 0.1 (report-only) |    0.2721 |      0.1924 |       0.2399 |   0.3752 |   0.2262 |    0.2165 |           0.359  |            0.993 |
 
 Relative change of normalised vs raw: mean -7.04%, median -9.19%. **Adopted variant: norm.**
 
@@ -38,11 +39,16 @@ Relative change of normalised vs raw: mean -7.04%, median -9.19%. **Adopted vari
 
 Groups `ev` (30 named-event indicators) and `xs` (cross-store zero run) are added only if they lower mean scaled pinball by >= 0.5% relative; the other arms are report-only sensitivities (ids, year-ago flipped, future price removed).
 
-| arm   |   mean_sp |   median_sp |   F2_mean_sp | vs_base   |   WAPE_of_median | decision   |
-|:------|----------:|------------:|-------------:|:----------|-----------------:|:-----------|
-| base  |    0.2639 |      0.1861 |       0.2315 | +0.00%    |           0.3579 |            |
-| ev    |    0.2628 |      0.1862 |       0.2317 | -0.42%    |           0.358  | do not add |
-| xs    |    0.2639 |      0.1855 |       0.232  | -0.02%    |           0.3585 | do not add |
+| arm          |   mean_sp |   median_sp |   F2_mean_sp | vs_base   |   WAPE_of_median | decision    |
+|:-------------|----------:|------------:|-------------:|:----------|-----------------:|:------------|
+| base         |    0.2639 |      0.1861 |       0.2315 | +0.00%    |           0.3579 |             |
+| ev           |    0.2628 |      0.1862 |       0.2317 | -0.42%    |           0.358  | do not add  |
+| xs           |    0.2639 |      0.1855 |       0.232  | -0.02%    |           0.3585 | do not add  |
+| ids_all      |    0.2636 |      0.1852 |       0.2311 | -0.11%    |           0.3587 | report-only |
+| ids_noitem   |    0.2636 |      0.1852 |       0.2318 | -0.11%    |           0.3582 | report-only |
+| yearago_flip |    0.2636 |      0.1885 |       0.234  | -0.12%    |           0.3582 | report-only |
+| nofutprice   |    0.2644 |      0.1866 |       0.2324 | +0.17%    |           0.3591 | report-only |
+| final_lr0.1  |    0.2643 |      0.1851 |       0.2314 | +0.13%    |           0.3594 | report-only |
 
 Final shared feature set for both policies: base set of the norm variant + `base`.
 
