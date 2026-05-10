@@ -36,7 +36,7 @@ Rules for every test:
 | Quantile models (7) | `xgb_q` (registered, `REQUIRED_MODELS[7]`) passes the contract tests and the synthetic quantile checks (near-true quantiles, coverage bounded by the exact CDF, sorted); `test_learned_models.py`: alphas, sorted/non-negative output, median = `predict`, normalised scale round trip, untrained level rejected, thread count | done |
 | Phase 7 pure functions (7) | `test_selection.py` (relative tolerances, the normalisation rule incl. the mean-vs-median disagreement staying raw), `test_metrics.py` (`cov_lo` / `cov_hi` / status bands, interval coverage), `test_quantiles.py` (z values, pooled sigma, benchmark quantile by hand); `test_features.py` covers `ev_named` and `xs_zero` (brute force and leak tests, synthetic and real data); `test_phase7_runner.py` (realdata) checks the feature sets by variant and arm | done |
 | Conformal (7) | `test_conformal.py`: hand offsets, `n_min` 4 / 9 / 19 / 99, the guard raises below it and allows the minimum, thin-sample thresholds, segment pooling, scale round trip, clip + re-sort, exact finite-sample coverage on exchangeable data, calibration origins are Sundays from the calibration window only | done |
-| SHAP (9) | `test_shap.py` | **pending, see below** |
+| SHAP (8) | `test_shap.py` (placeholder tagged `PENDING-PHASE: 8`) | **pending, blocks Phase 8** |
 | Simulator and policies (10) | `test_simulator.py` | **pending, see below** |
 
 ## Obligations for components not built yet
@@ -51,9 +51,14 @@ Pre-registered in design.md section 12 (Phase 7 pre-registration, item 6). Tests
 - After adding offsets the quantiles are clipped at 0 and re-sorted across alphas (crossing case by hand).
 
 ### shap
-- Additivity: for every explained row, base value + sum of SHAP values equals the model output (to numerical tolerance), for the mean model and each explained quantile model.
-- Wording: generated explanation text says "price is X% below usual" and never contains "promotion" or "promo"; X is computed from `price_rel_now` (hand example: 0.85 gives "15% below usual").
-- Deterministic output for a fixed model and row; features named as in `docs/features.md`.
+Pre-registered in design.md section 12 (Phase 8 pre-registration). Tests to write, replacing the placeholder:
+- **Additivity per quantile:** bias + sum of feature contributions equals the raw model output for the P50 and for the service-level quantile, in ratio space and in unit space.
+- **Unit conversion:** ratio contributions times the row scale equal unit contributions (hand example: 0.5 x scale 8 = 4.0 units), and end to end against the model.
+- **Sign-to-word agreement:** the verb is "raises" iff the theme's unit contribution is positive and "lowers" iff negative; never the other way (property test over random contributions).
+- **Wording rules:** price 0.85 gives "price is 15% below usual", 1.10 gives "10% above usual", 1.004 gives "about usual"; none of promotion, promo, discount, on sale, because, caused ever appears.
+- **Themes:** every model input is in exactly one theme; theme contributions sum to the total.
+- **Guards:** only Sunday origins are explained; origins whose target window passes the tuning cutoff are refused unless the explicit test-window flag is passed.
+- Deterministic output for a fixed model and row.
 
 ### simulator
 - **Hand-computed scenario:** one series, R = 7, L = 3, known demand list and order-up-to level S: the expected on-hand path, orders, receipts, lost sales, fill rate and average inventory are written out by hand in the test.
