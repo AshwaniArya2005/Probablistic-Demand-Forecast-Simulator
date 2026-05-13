@@ -71,6 +71,7 @@ if __name__ == "__main__":
                 assert abs(per.sp_mean6.mean() - cached) < 1e-9, (label, fold, P, per.sp_mean6.mean(), cached)
             if label.startswith("B3"):
                 recs[f"{label}|{fold}|{P}"] = tq.qrecord(Q, sel, P, nscale)
+        recs[f"crossing|{fold}|{P}"] = qm.crossing_share(sel)      # real crossing rate: measured on the unsorted per-target tree sums
         print(f"cell {fold} P={P} done; reproduced the cached Phase 7 values", flush=True)
     out = tq.PROCESSED
     pd.concat(rows, ignore_index=True).to_parquet(out / f"phase7_series_{tq.SHARD}.parquet")

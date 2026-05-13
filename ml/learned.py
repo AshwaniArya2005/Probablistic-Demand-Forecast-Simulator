@@ -3,6 +3,7 @@ docs/design.md section 12. All share: a model picks its inputs (`columns`, defau
 optional target normalisation (train on Y / scale, predict yhat * scale, scale = max(mean_28, floor) * P); predictions clipped at 0.
 Ids: one-hot for Linear Regression, arbitrary ordinal codes for the trees (unseen levels: all-zero one-hot / code -1)."""
 import base64
+import copy
 import json
 import pickle
 
@@ -169,12 +170,65 @@ class XGBQ(XGB):
         return dict(super()._param(), objective="reg:quantileerror", quantile_alpha=np.array(self.ALPHAS))
 
     def _raw(self, X):
+        """the model's reported quantiles before clipping: XGBoost's joint `predict` returns the per-target tree sums already SORTED"""
         q = np.asarray(self.model.predict(xgb.DMatrix(self._matrix(X, False))), "float64").reshape(len(X), len(self.ALPHAS))
         return q * self.scale(X)[:, None] if self.normalize else q
 
+    def __getstate__(self):
+        return {k: v for k, v in self.__dict__.items() if k != "_singles"}      # the sliced boosters are rebuilt on demand
+
+    def _single_boosters(self):
+        """one single-target booster per quantile, sliced from the joint model's JSON (only that target's trees, its own base score). XGBoost 3.4.1
+        has two defects here: joint `pred_contribs` does not reconcile with joint `predict` (it explains the unsorted tree sums, predict returns them
+        sorted), and the `shap` package inherits it. A sliced booster is exact: its prediction is the target's tree sum and its contributions add up to it."""
+        if getattr(self, "_singles", None) is None:
+            raw = json.loads(bytes(self.model.save_raw("json")))
+            alphas, base = self.ALPHAS, json.loads(raw["learner"]["learner_model_param"]["base_score"].replace("E", "e"))
+            out = []
+            for t in range(len(alphas)):
+                r = copy.deepcopy(raw)
+                m = r["learner"]["gradient_booster"]["model"]
+                trees = [copy.deepcopy(m["trees"][i]) for i, g in enumerate(m["tree_info"]) if g == t]
+                for j, tr in enumerate(trees):
+                    tr["id"] = j
+                m["trees"], m["tree_info"] = trees, [0] * len(trees)
+                m["gbtree_model_param"]["num_trees"] = str(len(trees))
+                m["iteration_indptr"] = list(range(len(trees) + 1))
+                r["learner"]["learner_model_param"]["base_score"] = "[%s]" % repr(float(base[t]))
+                r["learner"]["learner_model_param"]["num_target"] = "1"
+                r["learner"]["objective"]["quantile_loss_param"]["quantile_alpha"] = str(alphas[t])
+                out.append(xgb.Booster(model_file=bytearray(json.dumps(r).encode())))
+            self._singles = out
+        return self._singles
+
+    def _unsorted(self, X):
+        """per-target tree sums before XGBoost's internal sorting (units)"""
+        d = xgb.DMatrix(self._matrix(X, False))
+        q = np.column_stack([b.predict(d) for b in self._single_boosters()]).astype("float64")
+        return q * self.scale(X)[:, None] if self.normalize else q
+
     def crossing_share(self, X):
-        """share of rows whose raw quantiles cross before sorting (reported, then fixed by sorting)"""
-        return float((np.diff(self._raw(X), axis=1) < 0).any(axis=1).mean()) if len(X) else 0.0
+        """share of rows whose per-target tree sums cross, i.e. rows XGBoost's internal sort changed (diagnostic; measured on the unsorted sums)"""
+        return float((np.diff(self._unsorted(X), axis=1) < 0).any(axis=1).mean()) if len(X) else 0.0
+
+    def feature_names(self, X=None):
+        num, ids = self._split(X)
+        return num + ids
+
+    def contributions(self, X, alphas):
+        """exact per-quantile TreeSHAP contributions of the REPORTED (sorted) quantiles, in units. For each row and rank r the contributions come
+        from whichever target's trees produced the r-th smallest tree sum, so they add up to the reported value even where quantiles cross.
+        Returns dict: phi (n, len(alphas), F) feature contributions, bias (n, len(alphas)) baseline, value (n, len(alphas)) = bias + sum(phi) = the
+        reported quantile before clipping at 0, names, source (n, len(alphas)) the target index that supplied each value."""
+        idx = [self.ALPHAS.index(a) for a in alphas]
+        d = xgb.DMatrix(self._matrix(X, False))
+        parts = np.stack([b.predict(d, pred_contribs=True) for b in self._single_boosters()])          # (6, n, F+1), model space
+        order = np.argsort(parts.sum(-1).T, axis=1, kind="stable")                                       # order[:, r]: target giving the r-th smallest
+        src = order[:, idx]
+        phi = parts[src, np.arange(len(X))[:, None], :]                                                  # (n, k, F+1)
+        if self.normalize:
+            phi = phi * self.scale(X)[:, None, None]                                                     # ratio space -> units
+        return dict(phi=phi[:, :, :-1], bias=phi[:, :, -1], value=phi.sum(-1), names=self.feature_names(X), source=src)
 
     def predict_quantiles(self, X, alphas):
         idx = [self.ALPHAS.index(a) for a in alphas]                  # ValueError if an alpha was not trained

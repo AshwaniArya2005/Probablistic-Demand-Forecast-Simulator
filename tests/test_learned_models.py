@@ -148,12 +148,13 @@ def test_xgbq_normalised_constant_target_multiplies_the_scale_back():
     assert q == pytest.approx(np.repeat(3 * m.scale(Xn)[:, None], 6, axis=1), rel=1e-3)     # includes a row below the floor
 
 
-def test_xgbq_crossing_is_fixed_by_sorting_but_reported(feats):
+def test_xgbq_crossing_is_measured_before_xgboosts_internal_sort(feats):
+    """XGBoost's joint predict returns the per-target tree sums already sorted, so crossing must be measured on the unsorted sums (the sliced boosters)"""
     m = XGBQ(7, seed=0, **SMALL).fit(feats, feats["y_p7"])
-    raw = m._raw(feats)
-    srt = m.predict_quantiles(feats, ALPHAS)
-    assert (np.diff(srt, axis=1) >= 0).all()
-    assert m.crossing_share(feats) == pytest.approx(float((np.diff(raw, axis=1) < 0).any(axis=1).mean()))
+    unsorted = m._unsorted(feats)
+    assert m.crossing_share(feats) == pytest.approx(float((np.diff(unsorted, axis=1) < 0).any(axis=1).mean()))
+    assert np.allclose(np.sort(unsorted, axis=1), m._raw(feats), atol=1e-4), "the joint prediction is the sorted tree sums"
+    assert (np.diff(m.predict_quantiles(feats, ALPHAS), axis=1) >= 0).all()
 
 
 def test_xgb_thread_count_is_passed_only_when_set():
