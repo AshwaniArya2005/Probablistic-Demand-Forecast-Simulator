@@ -403,7 +403,8 @@ def stage_report(floor):
                   f"thin-sample warnings (n < 5/(1-alpha)): {int(inf.thin.sum())}; minimum n {int(inf.n.min())}, median n {int(inf.n.median())}.\n")
         metaf = pd.DataFrame([fin[c]["meta"] for c in CELLS])
         md.append(f"### Model diagnostics\n\nCells whose early stopping hit the 1,000-round cap: {int(metaf.hit_cap.sum())} of {len(metaf)}. "
-                  f"Mean share of rows with crossing quantiles before sorting: {metaf.crossing_share.mean():.3f}.\n")
+                  "Crossing share: not reported here. The value recorded at fit time was measured on XGBoost's already-sorted output and is invalid "
+                  "(design.md, correction of 2026-09-21); the real rate on the unsorted per-target tree sums is measured in ml/series_pinball.py.\n")
         pd.DataFrame([{**dict(method=k, fold=c[0], P=c[1]), **flat(fin[c][k])} for c in CELLS for k in names]).round(5).to_csv(out / "phase7_quantile_final_cells.csv", index=False)
     allr = pd.DataFrame([{**dict(variant=json.loads(k)[0], cfg=json.dumps(json.loads(k)[1]), arm=json.loads(k)[2], floor=json.loads(k)[3]), **flat(r)}
                          for (k, c), r in cache.items() if not k.startswith('["final')])          # per-fit records only (final and final_b hold nested results)
