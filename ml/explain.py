@@ -10,9 +10,9 @@ import pandas as pd
 from folds import assert_tuning_only
 
 # theme -> subject phrase used in sentences ("the price (price is 12% below usual)" is built separately)
-THEMES = {"recent sales level": "the recent sales level", "zero-sales stretches": "the pattern of days without sales",
-          "same period last year": "last year's sales in the same period", "price": "the price", "calendar": "calendar effects",
-          "events": "events in the window", "series age": "the series age", "series identity": "the item and store"}
+THEMES = {"recent sales level": "the recent sales level", "zero-sales stretches": "the days-without-sales pattern",
+          "same period last year": "the same period last year", "price vs usual": "the price", "price level": "the item's price level",
+          "calendar": "the calendar", "events": "the event calendar", "series age": "the series age", "series identity": "the item-store identity"}
 BANNED = re.compile(r"\b(promotion|promo|promotions|discount|on sale|because|caused|due to)\b", re.I)
 VERB_UP, VERB_DOWN = "raises", "lowers"
 MIN_ABS_UNITS, TOP = 0.05, 3
@@ -26,8 +26,10 @@ def theme_of(name):
         return "zero-sales stretches"
     if re.fullmatch(r"sum_364_\d+", name):
         return "same period last year"
-    if re.fullmatch(r"price|price_rel_now|price_(mean|min)_rel_p\d+", name):
-        return "price"
+    if name == "price":
+        return "price level"                                  # the absolute price is an item-type proxy, not a deviation from usual
+    if re.fullmatch(r"price_rel_now|price_(mean|min)_rel_p\d+", name):
+        return "price vs usual"
     if re.fullmatch(r"n_(snap|weekend|closed)_p\d+|origin_dow", name):
         return "calendar"
     if re.fullmatch(r"n_(event|sporting|cultural|national|religious)_p\d+|ev_.+_p\d+", name):
@@ -53,9 +55,10 @@ def theme_contributions(phi, names):
     return np.asarray(phi, float) @ M, order
 
 
-def price_words(rel_now, rel_window):
-    """'price is X% below usual' / 'above usual' / 'about usual', from whichever of the current and the planned window price deviates more"""
-    rel = rel_now if abs(1 - rel_now) >= abs(1 - rel_window) else rel_window
+def price_words(rel_now, rel_window, rel_min=None):
+    """'price is X% below usual' / 'above usual' / 'about usual', from whichever of the current price, the planned window mean and the planned window
+    minimum (each relative to the usual price) deviates most"""
+    rel = max([rel_now, rel_window] + ([] if rel_min is None else [rel_min]), key=lambda r: abs(1 - r))
     pct = round(abs(1 - rel) * 100)
     if pct < 1:
         return "price is about usual"
@@ -68,7 +71,7 @@ def clauses(theme_units, themes, price_text=None, top=TOP, min_abs=MIN_ABS_UNITS
     out = []
     for i in idx:
         subject = THEMES[themes[i]]
-        if themes[i] == "price" and price_text:
+        if themes[i] == "price vs usual" and price_text:
             subject = f"the price ({price_text})"
         out.append((subject, VERB_UP if theme_units[i] > 0 else VERB_DOWN, abs(float(theme_units[i]))))
     return out
@@ -87,7 +90,7 @@ def sentence(label, value, baseline, P, cl):
 def explain_rows(model, rows, P, alpha, top=TOP, allow_test_window=False, touch_log_ref=None):
     """explain the P50 and the `alpha` service-level quantile for each row (Sunday review origins only). Returns a list of dicts per row:
     {row, p50: {text, value, baseline, themes}, service: {...}}. `rows` needs a `date` column and the model's inputs (and price_rel_now,
-    price_mean_rel_p{P} for the price wording)."""
+    price_mean_rel_p{P}, price_min_rel_p{P} for the price wording)."""
     d = pd.DatetimeIndex(rows["date"])
     if (d.dayofweek != 6).any():
         raise ValueError("only Sunday review origins are explained")
@@ -101,7 +104,8 @@ def explain_rows(model, rows, P, alpha, top=TOP, allow_test_window=False, touch_
     out = []
     for i in range(len(rows)):
         r = rows.iloc[i]
-        ptxt = price_words(float(r["price_rel_now"]), float(r[f"price_mean_rel_p{P}"])) if "price_rel_now" in rows else None
+        ptxt = (price_words(float(r["price_rel_now"]), float(r[f"price_mean_rel_p{P}"]), float(r[f"price_min_rel_p{P}"]))
+                if {"price_rel_now", f"price_mean_rel_p{P}", f"price_min_rel_p{P}"} <= set(rows.columns) else None)
         rec = {"row": i}
         for k, (key, label) in enumerate((("p50", "P50 forecast"), ("service", f"P{int(round(alpha * 100))} order-up-to quantile"))):
             cl = clauses(theme_units[i, k], themes, ptxt, top)

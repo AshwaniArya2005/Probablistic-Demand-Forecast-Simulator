@@ -36,7 +36,7 @@ Rules for every test:
 | Quantile models (7) | `xgb_q` (registered, `REQUIRED_MODELS[7]`) passes the contract tests and the synthetic quantile checks (near-true quantiles, coverage bounded by the exact CDF, sorted); `test_learned_models.py`: alphas, sorted/non-negative output, median = `predict`, normalised scale round trip, untrained level rejected, thread count | done |
 | Phase 7 pure functions (7) | `test_selection.py` (relative tolerances, the normalisation rule incl. the mean-vs-median disagreement staying raw), `test_metrics.py` (`cov_lo` / `cov_hi` / status bands, interval coverage), `test_quantiles.py` (z values, pooled sigma, benchmark quantile by hand); `test_features.py` covers `ev_named` and `xs_zero` (brute force and leak tests, synthetic and real data); `test_phase7_runner.py` (realdata) checks the feature sets by variant and arm | done |
 | Conformal (7) | `test_conformal.py`: hand offsets, `n_min` 4 / 9 / 19 / 99, the guard raises below it and allows the minimum, thin-sample thresholds, segment pooling, scale round trip, clip + re-sort, exact finite-sample coverage on exchangeable data, calibration origins are Sundays from the calibration window only | done |
-| SHAP (8) | `test_shap.py` (placeholder tagged `PENDING-PHASE: 8`) | **pending, blocks Phase 8** |
+| SHAP explanations (8) | `test_shap.py` (18 tests): every input in exactly one theme and theme sums equal the total; ratio-to-unit conversion by hand and end to end; sliced boosters reproduce the sorted joint prediction; additivity per quantile in ratio and unit space including rows where quantiles cross (blind-tested fixture); a test that documents the XGBoost 3.4.1 `pred_contribs` defect; sign-to-word agreement (property test); price wording by hand and the absolute price never described as below usual; banned words never appear; subjects agree in number; Sunday-only and tuning-only guards, the test-window flag needs a touch-log reference; determinism and save/load | done |
 | Simulator and policies (10) | `test_simulator.py` | **pending, see below** |
 
 ## Obligations for components not built yet
@@ -56,7 +56,8 @@ Pre-registered in design.md section 12 (Phase 8 pre-registration). Tests to writ
 - **Unit conversion:** ratio contributions times the row scale equal unit contributions (hand example: 0.5 x scale 8 = 4.0 units), and end to end against the model.
 - **Sign-to-word agreement:** the verb is "raises" iff the theme's unit contribution is positive and "lowers" iff negative; never the other way (property test over random contributions).
 - **Wording rules:** price 0.85 gives "price is 15% below usual", 1.10 gives "10% above usual", 1.004 gives "about usual"; none of promotion, promo, discount, on sale, because, caused ever appears.
-- **Themes:** every model input is in exactly one theme; theme contributions sum to the total.
+- **Themes:** every model input is in exactly one theme; theme contributions sum to the total. The absolute `price` is its own theme ("price level") and is never described as below or above usual; only `price_rel_now` and the planned window price features carry that wording.
+- **Exactness under crossing:** contributions come from single-target boosters sliced from the model (XGBoost 3.4.1's joint `pred_contribs` and the `shap` package do not reconcile with `predict`), taken per reported rank, and additivity is tested on rows where quantiles cross.
 - **Guards:** only Sunday origins are explained; origins whose target window passes the tuning cutoff are refused unless the explicit test-window flag is passed.
 - Deterministic output for a fixed model and row.
 

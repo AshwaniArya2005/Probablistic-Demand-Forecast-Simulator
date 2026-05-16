@@ -44,8 +44,8 @@ for s in ("high", "mid", "low"):
     idx = np.flatnonzero(seg == s)
     for q in (0.5, 0.9):
         ex.append((f"{s} velocity, P50 forecast near the segment's {int(q * 100)}th percentile", idx[np.argmin(np.abs(v[idx] - np.quantile(v[idx], q)))]))
-pj = themes.index("price")
-ex.append(("largest price contribution to the service-level quantile", int(np.argmax(np.abs(theme_units[:, 1, pj])))))
+pj = themes.index("price vs usual")
+ex.append(("largest price-vs-usual contribution to the service-level quantile", int(np.argmax(np.abs(theme_units[:, 1, pj])))))
 if crossed.any():
     ex.append(("a row where XGBoost's internal sort changed the quantile order", int(np.flatnonzero(crossed.any(axis=1))[0])))
 head = f"`{tq.subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, cwd=tq.ROOT).stdout.strip()}`"

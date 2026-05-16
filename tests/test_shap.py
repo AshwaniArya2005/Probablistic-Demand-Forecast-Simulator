@@ -139,14 +139,33 @@ def test_price_wording_by_hand():
     assert price_words(1.10, 1.0) == "price is 10% above usual"
     assert price_words(1.004, 1.0) == "price is about usual"
     assert price_words(1.0, 0.70) == "price is 30% below usual"                  # the planned window price deviates more than today's price
+    assert price_words(1.0, 1.0, 0.60) == "price is 40% below usual"             # the planned window minimum deviates most
+    assert price_words(1.02, 0.97, 1.0) == "price is 3% below usual"
 
 
 def test_price_clause_uses_the_price_wording():
     themes = list(THEMES)
     c = np.zeros(len(themes))
-    c[themes.index("price")] = -1.2
+    c[themes.index("price vs usual")] = -1.2
     (subject, verb, amount), = clauses(c, themes, price_text="price is 15% below usual")
     assert "price is 15% below usual" in subject and verb == VERB_DOWN and amount == pytest.approx(1.2)
+
+
+def test_the_absolute_price_level_is_never_described_as_below_usual():
+    """the absolute price is an item-type proxy; only the relative-to-usual features may carry the "% below usual" wording"""
+    assert theme_of("price") == "price level" and theme_of("price_rel_now") == theme_of("price_min_rel_p7") == "price vs usual"
+    themes = list(THEMES)
+    c = np.zeros(len(themes))
+    c[themes.index("price level")] = 2.0
+    (subject, verb, amount), = clauses(c, themes, price_text="price is 15% below usual")
+    assert "usual" not in subject and "%" not in subject and verb == VERB_UP
+
+
+def test_subjects_agree_in_number_with_the_verb():
+    """the last word of every subject is singular, so "raises" / "lowers" is grammatical (a plural last word would read "effects raises")"""
+    for theme, subject in THEMES.items():
+        assert not re.search(r"(effects|events|sales|days|stretches)$", subject), (theme, subject)
+        assert not re.search(r" and ", subject), (theme, subject)
 
 
 def test_banned_words_never_appear_and_the_guard_fires(feature_model):
