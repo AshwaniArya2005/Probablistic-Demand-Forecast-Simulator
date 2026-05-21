@@ -86,6 +86,8 @@ def cols_for(P, variant, arm):
             cols += [c for c in STATIC if c != "item_id"]
         elif a == "yearago_flip":
             cols = cols + [f"sum_364_{P}"] if variant == "raw" else [c for c in cols if c != f"sum_364_{P}"]
+        elif a == "no_age":
+            cols = [c for c in cols if c != "age_days"]                # post-hoc, report-only (design.md 2026-09-21)
         elif a == "nofutprice":
             cols = [c for c in cols if not c.startswith(("price_mean_rel", "price_min_rel"))]
     return cols
@@ -215,6 +217,14 @@ def stage_sens(floor):
     run(specs, "S sensitivities (report-only)")
 
 
+def stage_age(floor):
+    """post-hoc, report-only: the final model refit without age_days (defined after Phase 8 showed it carries 16% of the P50 attribution)"""
+    var = adopted(floor)
+    cfg = selected_cfg(var, floor)
+    assert final_arm(var, cfg, floor) == "base", "the age ablation is defined against the base set"
+    run([spec(var, cfg, "no_age", floor)], "P post-hoc: drop age_days")
+
+
 def final_arm(var, cfg, floor):
     base = mean_sp(spec(var, cfg, "base", floor))
     keep = [a for a in ("ev", "xs") if selection.add_group(base, mean_sp(spec(var, cfg, a, floor)))]
@@ -291,6 +301,16 @@ def stage_bench(floor):
         print(f"  bench cell {fold} P={P} done", flush=True)
 
 
+def crossing_text():
+    """the real crossing share (rows whose quantile order XGBoost's internal sort changed), measured on the unsorted per-target tree sums by
+    ml/series_pinball.py; the value recorded at fit time was measured on already-sorted output and is invalid (design.md correction, 2026-09-21)"""
+    import glob
+    vals = [v for f in glob.glob(str(PROCESSED / "phase7_b3_*.json")) for k, v in json.load(open(f)).items() if k.startswith("crossing|")]
+    if not vals:
+        return "Crossing share: not measured (run ml/series_pinball.py).\n"
+    return f"Crossing share (unsorted per-target tree sums, {len(vals)} cells): mean {np.mean(vals):.1%}, range {min(vals):.1%} to {max(vals):.1%}.\n"
+
+
 def flat(d, prefix=""):
     return {f"{prefix}{k}": v for k, v in d.items() if not isinstance(v, dict)}
 
@@ -339,7 +359,7 @@ def stage_report(floor):
               + f"\n\nRelative change of normalised vs raw: mean {mean_sp(n) / mean_sp(r) - 1:+.2%}, median {mean_spmed(n) / mean_spmed(r) - 1:+.2%}. **Adopted variant: {var}.**\n")
     # Step D
     d = []
-    for a in ("base", "ev", "xs", "ids_all", "ids_noitem", "yearago_flip", "nofutprice", "final_lr0.1"):
+    for a in ("base", "ev", "xs", "ids_all", "ids_noitem", "yearago_flip", "nofutprice", "final_lr0.1", "no_age"):
         s = spec(var, dict(cfg, learning_rate=0.1), arm, floor) if a == "final_lr0.1" else spec(var, cfg, a, floor)
         if (key(s), CELLS[0]) not in cache:
             continue
@@ -403,8 +423,7 @@ def stage_report(floor):
                   f"thin-sample warnings (n < 5/(1-alpha)): {int(inf.thin.sum())}; minimum n {int(inf.n.min())}, median n {int(inf.n.median())}.\n")
         metaf = pd.DataFrame([fin[c]["meta"] for c in CELLS])
         md.append(f"### Model diagnostics\n\nCells whose early stopping hit the 1,000-round cap: {int(metaf.hit_cap.sum())} of {len(metaf)}. "
-                  "Crossing share: not reported here. The value recorded at fit time was measured on XGBoost's already-sorted output and is invalid "
-                  "(design.md, correction of 2026-09-21); the real rate on the unsorted per-target tree sums is measured in ml/series_pinball.py.\n")
+                  + crossing_text())
         pd.DataFrame([{**dict(method=k, fold=c[0], P=c[1]), **flat(fin[c][k])} for c in CELLS for k in names]).round(5).to_csv(out / "phase7_quantile_final_cells.csv", index=False)
     allr = pd.DataFrame([{**dict(variant=json.loads(k)[0], cfg=json.dumps(json.loads(k)[1]), arm=json.loads(k)[2], floor=json.loads(k)[3]), **flat(r)}
                          for (k, c), r in cache.items() if not k.startswith('["final')])          # per-fit records only (final and final_b hold nested results)
@@ -428,5 +447,7 @@ if __name__ == "__main__":
         stage_sens(fl)
     if what in ("bench", "all"):
         stage_bench(fl)
+    if what in ("age", "all"):
+        stage_age(fl)
     if what in ("report", "all"):
         stage_report(fl)
