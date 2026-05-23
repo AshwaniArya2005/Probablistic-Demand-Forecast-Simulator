@@ -395,6 +395,7 @@ def stage_report(floor):
         S = pd.DataFrame(summ).set_index("method")
         S["ratio_mean_to_B2"] = S.mean_sp / S.loc[names["B2_xgb"], "mean_sp"]
         S["ratio_mean_to_B1"] = S.mean_sp / S.loc[names["B1_ma28"], "mean_sp"]
+        md.append("**Framing rule (design.md, 2026-09-21):** the ratio to B2 below is never quoted alone. Read the headline as: vs the post-hoc B3a benchmark, about 13% lower scaled pinball on the tuning folds; the normal sigma was most of the gap to the textbook policy B2.\n\n")
         md.append("## Step E: scaled pinball against the point-policy benchmarks (mean over 12 cells; ratio below 1 is better)\n\n" + S.round(4).to_markdown()
                   + "\n\n### F2 (holiday fold) only\n\n" + pd.DataFrame(f2).set_index("method").round(4).to_markdown() + "\n")
         perP = pd.DataFrame([{**dict(P=c[1], fold=c[0]), **{nm: fin[c][k]["sp_mean"] for k, nm in names.items()}} for c in CELLS]).groupby("P").mean(numeric_only=True)

@@ -32,7 +32,7 @@ for k, label in enumerate(("P50", f"P{int(ALPHA * 100)}")):
     for s in ("all", "low", "mid", "high"):
         m = np.ones(len(rows), bool) if s == "all" else seg == s
         a = np.abs(theme_units[m, k]).mean(0)
-        tab.append(dict(quantile=label, segment=s, **{t: a[j] / a.sum() for j, t in enumerate(themes)}, mean_abs_total_units=a.sum(), mean_baseline_units=c["bias"][m, k].mean(),
+        tab.append(dict(quantile=label, segment=s, **{explain.GLOBAL_LABEL.get(t, t): a[j] / a.sum() for j, t in enumerate(themes)}, mean_abs_total_units=a.sum(), mean_baseline_units=c["bias"][m, k].mean(),
                         mean_forecast_units=c["value"][m, k].mean()))
 T = pd.DataFrame(tab)
 

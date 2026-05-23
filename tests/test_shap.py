@@ -48,6 +48,16 @@ def test_every_model_input_is_in_exactly_one_theme():
         theme_of("some_new_feature")                                          # never a silent "other"
 
 
+def test_series_age_is_not_interpreted_in_planner_sentences(feature_model):
+    """age_days sits in the neutral theme; no sentence ever names or interprets it, while global tables label it as not interpreted"""
+    assert theme_of("age_days") == "other factors" and "series age" not in THEMES
+    assert explain.GLOBAL_LABEL["other factors"] == "series age (not interpreted)"
+    m, rows, P = feature_model
+    texts = [r[k]["text"] for r in explain_rows(m, rows.iloc[:80], P, 0.9) for k in ("p50", "service")]
+    assert texts and not any(re.search(r"\bage\b", t, re.I) for t in texts)
+    assert any("remaining-factors group" in t for t in texts), "blind test: the neutral theme should be narrated somewhere in these rows"
+
+
 def test_theme_contributions_are_additive():
     names = columns(7)
     rng = np.random.default_rng(1)
@@ -164,7 +174,7 @@ def test_the_absolute_price_level_is_never_described_as_below_usual():
 def test_subjects_agree_in_number_with_the_verb():
     """the last word of every subject is singular, so "raises" / "lowers" is grammatical (a plural last word would read "effects raises")"""
     for theme, subject in THEMES.items():
-        assert not re.search(r"(effects|events|sales|days|stretches)$", subject), (theme, subject)
+        assert not re.search(r"\b(effects|events|sales|days|stretches)$", subject), (theme, subject)
         assert not re.search(r" and ", subject), (theme, subject)
 
 

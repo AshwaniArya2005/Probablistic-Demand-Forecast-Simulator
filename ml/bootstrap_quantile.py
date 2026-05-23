@@ -77,6 +77,7 @@ md = ("# Phase 7: cells won, item-cluster bootstrap and the post-hoc B3 benchmar
       "recomputed and reproduce the cached Phase 7 cell values to 1e-9. `diff` = mean scaled pinball of the quantile model minus the benchmark (negative = quantile model better), "
       f"95% percentile interval from {B} resamples of the 100 items (each item's three store-series together, seed 0); it reflects item sampling only, not "
       "period-to-period variability. `cells_won_of_12` counts fold x horizon cells where the quantile model's mean scaled pinball is lower. "
+      "**Framing rule (design.md, 2026-09-21):** the ratio to B2 below is never quoted alone. Read the headline as: vs the post-hoc B3a benchmark, about 13% lower scaled pinball on the tuning folds; the normal sigma was most of the gap to the textbook policy B2. "
       "**B3 variants are post-hoc**: defined after the Phase 7 results were known (design.md section 12, 2026-09-21), they can change no decision.\n\n"
       "## Mean scaled pinball by method (mean over 12 cells of the per-cell mean and median over series)\n\n" + summ.round(4).to_markdown()
       + "\n\n## Coverage of ceil(q) for the post-hoc B3 methods (mean over cells; status counts over 12 cells)\n\n" + pd.DataFrame(cov).to_markdown(index=False)

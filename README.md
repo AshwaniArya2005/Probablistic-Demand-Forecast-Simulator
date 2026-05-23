@@ -3,10 +3,10 @@
 Forecasts the **distribution** of demand over a protection interval (7, 10 or 14 days) for retail item-store series, and is designed to compare
 inventory ordering policies that use those forecasts in a historical replay. Built on the M5 (Walmart) data, 300 California series.
 
-**Status: work in progress.** Data preparation, features, baselines, point and quantile models and their evaluation on the tuning folds are done
-(phases 2 to 7); explanations (phase 8) are being built. **The inventory simulator, API and dashboard do not exist yet, and no result below is a
-claim about inventory or cost.** Every number in this file comes from a logged run; the decision log and the pre-registered rules are in
-[`docs/design.md`](docs/design.md), the run outputs in [`docs/results/`](docs/results/).
+**Status: work in progress.** Data preparation, features, baselines, point and quantile models, their evaluation on the tuning folds, and the explanation
+layer are done (phases 2 to 8); the planner-facing quantities (reorder point, safety stock, stockout-risk label) are being built (phase 9).
+**The inventory simulator, API and dashboard do not exist yet, and no result below is a claim about inventory or cost.** Every number in this file comes
+from a logged run; the decision log and the pre-registered rules are in [`docs/design.md`](docs/design.md), the run outputs in [`docs/results/`](docs/results/).
 
 ## What was evaluated, and how
 
@@ -18,19 +18,29 @@ claim about inventory or cost.** Every number in this file comes from a logged r
 
 ## Results so far (tuning folds only)
 
+**Headline.** Against the post-hoc benchmark that keeps the same point forecast but takes its quantiles from empirical residuals, the quantile model has **about 13% lower scaled pinball on the tuning folds** (0.2639 vs 0.3025, better in 12 of 12 fold-by-horizon cells, difference -0.039, 95% interval [-0.049, -0.031] over items). **The normal sigma was most of the gap to the textbook policy** (a normal quantile around the mean forecast with a pooled RMSE sigma, 0.4128): replacing it removes about three quarters of that gap. The gap to the textbook policy is never quoted without this.
+
 **Point forecasts** ([phase 6](docs/results/phase6_point_tuning.md), [bootstrap](docs/results/phase6_point_bootstrap.md)). Against the MA-28 baseline, pooled WAPE ratio at P = 7 / 10 / 14: Random Forest 0.962 / 0.957 / 0.958 (better in all 12 fold-by-horizon cells; difference -0.0157, 95% interval [-0.0228, -0.0085] over items), XGBoost 0.985 / 0.967 / 0.978 (11 of 12 cells; -0.0091 [-0.0164, -0.0010]), Linear Regression about 1.00 (no difference). The gain comes from mid- and high-velocity series: for low-velocity series no learned point model beat MA-28.
 
-**Quantile forecasts** ([phase 7](docs/results/phase7_quantile_tuning.md), [cells won and bootstrap](docs/results/phase7_bootstrap.md)). Mean scaled pinball loss (lower is better):
+**Model performance, quantile forecasts** ([phase 7](docs/results/phase7_quantile_tuning.md), [cells won and bootstrap](docs/results/phase7_bootstrap.md)):
 
-| Method | Mean scaled pinball |
-|---|---|
-| XGBoost quantile model | 0.2639 |
-| Pre-specified point policy (XGBoost mean + normal quantile, pooled RMSE sigma) | 0.4128 |
-| Post-hoc: same point forecast + empirical residual quantiles from the calibration window | 0.3025 |
+| | Value | Note |
+|---|---|---|
+| Mean scaled pinball, XGBoost quantile model | 0.2639 | median over series 0.1861 |
+| Mean scaled pinball, post-hoc B3a (point forecast + empirical residual quantiles) | 0.3025 | the quantile model is about 13% lower, 12 of 12 cells |
+| Mean scaled pinball, textbook point policy (normal sigma) | 0.4128 | its normal quantiles over-cover the 0.80 and 0.90 levels in all 12 cells |
+| Coverage of the ordered quantity (0.80 / 0.90 / 0.95 / 0.99) | consistent with nominal in 12 of 12 cells at every level | the test is discrete-aware and weak where ties are large |
+| Quantile crossing before sorting (XGBoost sorts internally) | **2.4% of rows on average** (0.9% to 4.7% by cell) | corrected: an earlier report of 0.000 measured already-sorted output |
+| Conformal calibration | adds nothing | 0.2659 vs 0.2639; enough scores in every segment |
+| Normalised vs raw target | about 3% better once both are trained comparably | 7% in the pre-registered comparison; the round cap penalised the raw fit |
 
-The quantile model wins in all 12 cells against every one of six benchmarks, and every bootstrap interval excludes zero. Its coverage of the ordered quantity is consistent with the nominal levels 0.80, 0.90, 0.95 and 0.99 in all 12 cells; conformal calibration adds nothing on these folds. The normalised target beats the raw target by about 3% once both are trained comparably.
+**Where the advantage is.** Against the textbook point policy the quantile model's advantage **concentrates in high-velocity series** (scaled pinball difference -0.340 for high, -0.071 for mid, -0.036 for low velocity). That concentration is mostly a property of the normal-quantile policy: against the post-hoc empirical-residual policy the advantage is **small and roughly even across segments** (-0.046, -0.035, -0.034). The post-hoc benchmark was defined after the results were known and is labelled as such.
 
-**Where the advantage is.** Against the pre-specified point policy the quantile model's advantage **concentrates in high-velocity series** (scaled pinball difference -0.340 for high, -0.071 for mid, -0.036 for low velocity). That concentration is mostly a property of the normal-quantile point policy, not of the quantile model: against the post-hoc empirical-residual-quantile policy the advantage is **small (-0.039, 12.8% of that policy's loss) and roughly even across segments** (-0.046, -0.035, -0.034). About three quarters of the headline gap to the pre-specified policy disappears once the normal-sigma assumption is replaced. The post-hoc benchmark was defined after the results were known and is labelled as such.
+**Explanations** ([phase 8](docs/results/phase8_explanations_tuning.md)). Exact per-quantile contributions are converted to units and grouped into themes for planner sentences ("price is X% below usual", never "promotion"). Two facts a reader needs:
+- XGBoost 3.4.1's joint `pred_contribs` for a multi-quantile model, and the `shap` package that wraps it, **do not reconcile with `predict`** (they explain the unsorted per-target tree sums while `predict` returns them sorted), so contributions here come from single-target boosters sliced from the model and are additive to float precision.
+- On **89 of 3,600 explained rows (2.5%)** in the explained fold, the quantile is explained through **another quantile's trees**, because the sort changed the order.
+
+Planner sentences do not interpret the series-age input (it sits in a neutral "remaining factors" theme); attributions are associations, not causal effects.
 
 ## Limitations
 

@@ -12,7 +12,9 @@ from folds import assert_tuning_only
 # theme -> subject phrase used in sentences ("the price (price is 12% below usual)" is built separately)
 THEMES = {"recent sales level": "the recent sales level", "zero-sales stretches": "the days-without-sales pattern",
           "same period last year": "the same period last year", "price vs usual": "the price", "price level": "the item's price level",
-          "calendar": "the calendar", "events": "the event calendar", "series age": "the series age", "series identity": "the item-store identity"}
+          "calendar": "the calendar", "events": "the event calendar", "other factors": "the remaining-factors group", "series identity": "the item-store identity"}
+# planner sentences never interpret `age_days`: it sits in the neutral theme "other factors"; only global tables and charts name it, and say it is not interpreted
+GLOBAL_LABEL = {"other factors": "series age (not interpreted)"}
 BANNED = re.compile(r"\b(promotion|promo|promotions|discount|on sale|because|caused|due to)\b", re.I)
 VERB_UP, VERB_DOWN = "raises", "lowers"
 MIN_ABS_UNITS, TOP = 0.05, 3
@@ -35,7 +37,7 @@ def theme_of(name):
     if re.fullmatch(r"n_(event|sporting|cultural|national|religious)_p\d+|ev_.+_p\d+", name):
         return "events"
     if name == "age_days":
-        return "series age"
+        return "other factors"
     if name in ("item_id", "store_id", "dept_id", "cat_id"):
         return "series identity"
     raise KeyError(f"feature '{name}' is not assigned to a theme")
