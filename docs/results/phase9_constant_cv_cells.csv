@@ -1,0 +1,37 @@
+fold,P,segment,ratio_constant_cv,ratio_sqrt_scale,form,n
+F1,7,high,9.7767,2.0106,constant-CV (both failed),1200
+F1,7,low,1.8689,1.1049,sqrt-scale,1188
+F1,7,mid,5.0391,1.901,constant-CV (both failed),1212
+F1,10,high,10.915,2.1015,constant-CV (both failed),1100
+F1,10,low,1.8262,1.0585,sqrt-scale,1089
+F1,10,mid,5.6242,2.0446,constant-CV (both failed),1111
+F1,14,high,9.4064,2.1484,constant-CV (both failed),1100
+F1,14,low,1.9528,1.2218,sqrt-scale,1089
+F1,14,mid,5.1157,1.909,constant-CV (both failed),1111
+F2,7,high,14.1534,3.5431,constant-CV (both failed),1200
+F2,7,low,2.076,1.2912,sqrt-scale,1188
+F2,7,mid,3.2037,1.1775,sqrt-scale,1212
+F2,10,high,15.1255,3.5801,constant-CV (both failed),1100
+F2,10,low,2.0759,1.1708,sqrt-scale,1089
+F2,10,mid,3.6147,1.2893,sqrt-scale,1111
+F2,14,high,14.9587,3.4367,constant-CV (both failed),1100
+F2,14,low,2.2372,1.1321,sqrt-scale,1089
+F2,14,mid,4.0858,1.4476,sqrt-scale,1111
+F3,7,high,13.7995,3.6389,constant-CV (both failed),1200
+F3,7,low,2.1732,1.2364,sqrt-scale,1188
+F3,7,mid,3.6564,1.387,sqrt-scale,1212
+F3,10,high,16.2847,4.1943,constant-CV (both failed),1100
+F3,10,low,2.0977,1.3904,sqrt-scale,1089
+F3,10,mid,3.5658,1.4851,sqrt-scale,1111
+F3,14,high,15.3758,4.158,constant-CV (both failed),1100
+F3,14,low,2.3422,1.314,sqrt-scale,1089
+F3,14,mid,5.4172,2.1379,constant-CV (both failed),1111
+F4,7,high,5.7969,1.7104,constant-CV (both failed),1200
+F4,7,low,2.0283,1.1051,sqrt-scale,1188
+F4,7,mid,3.2521,1.4403,sqrt-scale,1212
+F4,10,high,7.7873,2.2756,constant-CV (both failed),1100
+F4,10,low,2.2578,1.2442,sqrt-scale,1089
+F4,10,mid,3.753,1.6213,constant-CV (both failed),1111
+F4,14,high,8.8351,2.5023,constant-CV (both failed),1100
+F4,14,low,2.6189,1.4684,sqrt-scale,1089
+F4,14,mid,3.9215,1.7442,constant-CV (both failed),1111

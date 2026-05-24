@@ -1,6 +1,6 @@
 # Phase 7 quantile forecasts on the tuning folds
 
-Run 2026-09-21 at code commit `f9ede98`. Tuning folds only; nothing evaluated on the test window (touch log unchanged). One model version per fold and horizon (fit set ends at c - 84 days; 12 Sunday evaluation origins; the reserved calibration window feeds sigma and conformal offsets only). Rules: design.md section 12, Phase 7 pre-registration and its amendment. Scaled pinball = per-series mean pinball / naive-P scale, averaged over the six quantiles; 'mean' and 'median' are over series. Means are over the 12 fold x horizon cells unless stated.
+Run 2026-09-21 at code commit `3781317`. Tuning folds only; nothing evaluated on the test window (touch log unchanged). One model version per fold and horizon (fit set ends at c - 84 days; 12 Sunday evaluation origins; the reserved calibration window feeds sigma and conformal offsets only). Rules: design.md section 12, Phase 7 pre-registration and its amendment. Scaled pinball = per-series mean pinball / naive-P scale, averaged over the six quantiles; 'mean' and 'median' are over series. Means are over the 12 fold x horizon cells unless stated.
 
 ## Step A: scale floor (XGBoost quantile, depth 3 / min_child_weight 30, normalised)
 
@@ -49,8 +49,12 @@ Groups `ev` (30 named-event indicators) and `xs` (cross-store zero run) are adde
 | yearago_flip |    0.2636 |      0.1885 |       0.234  | -0.12%    |           0.3582 | report-only |
 | nofutprice   |    0.2644 |      0.1866 |       0.2324 | +0.17%    |           0.3591 | report-only |
 | final_lr0.1  |    0.2643 |      0.1851 |       0.2314 | +0.13%    |           0.3594 | report-only |
+| no_age       |    0.2594 |      0.1851 |       0.2297 | -1.70%    |           0.353  | report-only |
 
 Final shared feature set for both policies: base set of the norm variant + `base`.
+
+**Framing rule (design.md, 2026-09-21):** the ratio to B2 below is never quoted alone. Read the headline as: vs the post-hoc B3a benchmark, about 13% lower scaled pinball on the tuning folds; the normal sigma was most of the gap to the textbook policy B2.
+
 
 ## Step E: scaled pinball against the point-policy benchmarks (mean over 12 cells; ratio below 1 is better)
 
@@ -157,4 +161,4 @@ Cells x levels x segments: 144; not calibrated (too few scores): 0; thin-sample 
 
 ### Model diagnostics
 
-Cells whose early stopping hit the 1,000-round cap: 5 of 12. Crossing share: not reported here. The value recorded at fit time was measured on XGBoost's already-sorted output and is invalid (design.md, correction of 2026-09-21); the real rate on the unsorted per-target tree sums is measured in ml/series_pinball.py.
+Cells whose early stopping hit the 1,000-round cap: 5 of 12. Crossing share (unsorted per-target tree sums, 12 cells): mean 2.4%, range 0.9% to 4.7%.

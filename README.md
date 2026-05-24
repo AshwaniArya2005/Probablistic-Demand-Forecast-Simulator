@@ -4,7 +4,7 @@ Forecasts the **distribution** of demand over a protection interval (7, 10 or 14
 inventory ordering policies that use those forecasts in a historical replay. Built on the M5 (Walmart) data, 300 California series.
 
 **Status: work in progress.** Data preparation, features, baselines, point and quantile models, their evaluation on the tuning folds, and the explanation
-layer are done (phases 2 to 8); the planner-facing quantities (reorder point, safety stock, stockout-risk label) are being built (phase 9).
+layer and the planner-facing quantities (reorder point, safety stock, stockout-risk label) are done (phases 2 to 9).
 **The inventory simulator, API and dashboard do not exist yet, and no result below is a claim about inventory or cost.** Every number in this file comes
 from a logged run; the decision log and the pre-registered rules are in [`docs/design.md`](docs/design.md), the run outputs in [`docs/results/`](docs/results/).
 
@@ -39,6 +39,8 @@ from a logged run; the decision log and the pre-registered rules are in [`docs/d
 **Explanations** ([phase 8](docs/results/phase8_explanations_tuning.md)). Exact per-quantile contributions are converted to units and grouped into themes for planner sentences ("price is X% below usual", never "promotion"). Two facts a reader needs:
 - XGBoost 3.4.1's joint `pred_contribs` for a multi-quantile model, and the `shap` package that wraps it, **do not reconcile with `predict`** (they explain the unsorted per-target tree sums while `predict` returns them sorted), so contributions here come from single-target boosters sliced from the model and are additive to float precision.
 - On **89 of 3,600 explained rows (2.5%)** in the explained fold, the quantile is explained through **another quantile's trees**, because the sort changed the order.
+
+**Planner quantities** ([phase 9](docs/results/phase9_policy_quantities_tuning.md)). Reorder points and safety stock from the quantile model are close to nominal coverage at 0.80 to 0.95 (0.844 / 0.917 / 0.960), with mean safety stock 4.1 / 7.5 / 11.3 units; the classic normal-sigma version over-protects at every level below 0.99 (coverage 0.944 / 0.969 / 0.979; safety stock 28.2 / 42.7 / 54.7), mostly in high-velocity series. The constant-CV assumption behind the classic sigma **fails the pre-registered check** for high-velocity series (all 12 cells) and half the mid-velocity cells, so the classic figures are not a general statement about textbook policies. The stockout-risk label (HIGH / MEDIUM / LOW plus an overstock flag) orders realised shortfall frequency correctly, but it is a **risk band, not a probability**: at reference stock levels well above recent sales, fewer than a third of HIGH origins ran short. No cost or service result exists yet.
 
 Planner sentences do not interpret the series-age input (it sits in a neutral "remaining factors" theme); attributions are associations, not causal effects.
 
