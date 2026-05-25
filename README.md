@@ -3,7 +3,7 @@
 Forecasts the **distribution** of demand over a protection interval (7, 10 or 14 days) for retail item-store series, and is designed to compare
 inventory ordering policies that use those forecasts in a historical replay. Built on the M5 (Walmart) data, 300 California series.
 
-**Status: work in progress.** Data preparation, features, baselines, point and quantile models, their evaluation on the tuning folds, and the explanation
+**Status: work in progress.** Data preparation, features, baselines, point and quantile models, their evaluation on the tuning folds, the explanation
 layer and the planner-facing quantities (reorder point, safety stock, stockout-risk label) are done (phases 2 to 9).
 **The inventory simulator, API and dashboard do not exist yet, and no result below is a claim about inventory or cost.** Every number in this file comes
 from a logged run; the decision log and the pre-registered rules are in [`docs/design.md`](docs/design.md), the run outputs in [`docs/results/`](docs/results/).
