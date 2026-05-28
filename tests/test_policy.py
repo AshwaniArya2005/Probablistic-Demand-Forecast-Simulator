@@ -149,3 +149,23 @@ def test_sigma_by_hand_for_each_form():
     sigma_sqrt = sigma_p(np.array([2.0, -2.0]), np.array([4.0, 4.0]), "sqrt-scale")   # error / sqrt(scale) = +-1, so sigma' = 1
     assert sigma_sqrt(9.0) == pytest.approx(3.0)                               # sigma' * sqrt(9)
     assert policy.CV_THRESHOLD == 1.5 and policy.CV_BINS == 4
+
+
+# ---------- both sides of a ceiled tie (Phase 9 follow-up) ----------
+@pytest.mark.parametrize("q50, q90, q99, Q", [(5.0, 9.0, 12.0, (5, 9, 12)),                    # exact integers: the quantile is its own cut point
+                                              (5.01, 9.01, 12.01, (6, 10, 13)),                # just above: rounds up one unit
+                                              (5.0000000004, 9.0000000004, 12.0000000004, (5, 9, 12)),   # arithmetic noise does not add a unit
+                                              (4.99, 8.99, 11.99, (5, 9, 12))])                # just below: same cut point as the exact integer
+def test_each_cut_point_is_decided_on_both_sides_of_the_ceiled_tie(q50, q90, q99, Q):
+    Q50, Q90, Q99 = Q
+    ip = np.array([Q50 - 1, Q50, Q90 - 1, Q90, Q99, Q99 + 1])
+    label, over = stockout_risk(ip, q50, q90, q99)
+    assert label.tolist() == ["HIGH", "MEDIUM", "MEDIUM", "LOW", "LOW", "LOW"]
+    assert over.tolist() == [False, False, False, False, False, True]
+
+
+def test_a_median_between_zero_and_one_makes_zero_stock_high_and_a_zero_median_never_does():
+    # the display caveat found in the Phase 9 follow-up: q50 = 0.2 is an integer median of 0 for a slow mover, but ceil(0.2) = 1 puts IP = 0 in HIGH
+    assert stockout_risk([0, 1], 0.2, 3.0, 6.0)[0].tolist() == ["HIGH", "MEDIUM"]
+    assert stockout_risk([0, 1], 0.0, 3.0, 6.0)[0].tolist() == ["MEDIUM", "MEDIUM"]
+    assert stockout_risk([0], 0.0, 0.0, 0.0)[0].tolist() == ["LOW"]
