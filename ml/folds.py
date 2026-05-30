@@ -30,3 +30,14 @@ def select(feats, fold, P):
     f = feats[feats.date.isin(origins(fold))]
     assert_tuning_only(f.date, P)
     return f
+
+
+TOUCH_KEY = "Phase 10 primary run"
+
+
+def touch_logged(key=TOUCH_KEY):
+    """True if the test-window touch log (docs/design.md section 14) has a table row for `key`; test-window runs refuse to start without it"""
+    from config import ROOT
+    text = (ROOT / "docs" / "design.md").read_text(encoding="utf-8")
+    sec = text[text.index("## 14. Test-window touch log"):text.index("## 15.")]
+    return any(key in line and line.startswith("|") for line in sec.splitlines())

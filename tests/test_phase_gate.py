@@ -5,7 +5,7 @@ import pytest
 import phase_gate as g
 from models import REGISTRY
 
-PLACEHOLDERS = {"test_simulator.py": 10}      # conformal (7) and SHAP (8) were replaced by real tests      # conformal (7) was replaced by real tests
+PLACEHOLDERS = {}      # conformal (7), SHAP (8) and the simulator (10) were replaced by real tests; a new placeholder is added here with its phase
 
 
 def test_no_placeholder_remains_for_a_done_phase():
