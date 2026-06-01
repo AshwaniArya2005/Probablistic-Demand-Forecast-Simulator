@@ -354,7 +354,7 @@ Every time anything (a metric, a plot, a table, a model comparison, a threshold,
 
 | Date | Phase | What was computed on test-window data | Informed a decision? |
 |---|---|---|---|
-| (no entries) | | | |
+| 2026-09-21 | 10 | **Phase 10 primary run**, written before it starts. (1) `ml/sim_rows.py test`: forecast tables and calibration rows for model versions v0 to v4, i.e. features and predictions at the 29 review dates 2015-10-25 to 2016-05-08 (their features use sales up to each review date) and the calibration windows before each cutoff (targets observed by the cutoff). (2) `ml/sim_run.py primary`: one replay of the naive (frozen grid), B2 / B2-sqrt, quantile and B3a policies against the M5 sales of 2015-10-26 to 2016-05-18, base case L = 3, plus its item bootstrap, sub-period, segment and cost tables and the mechanical evaluation of the three predictions; output `docs/results/phase10_simulator_primary.md`. Code frozen at `48e2152`, freeze recorded at `f52daea`. | No: it is the headline result. It cannot change code, grids or parameters; any change after seeing it needs a new entry here and is labelled post-hoc. | |
 
 The Phase 3 EDA looked at test-window *volume* before this log existed; that is disclosed in section 12 (decision 5 after Phase 3) and is not repeated here.
 
