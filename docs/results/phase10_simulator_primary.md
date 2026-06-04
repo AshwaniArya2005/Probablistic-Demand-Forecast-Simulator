@@ -185,3 +185,26 @@ Final grid: [1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0
 | B2 / B2-sqrt | 2,293 at 0.8 (edge of its grid) | 2,413 at 0.8 (edge of its grid) | 2,652 at 0.8 (edge of its grid) | 4,475 at 0.9                   |
 | Quantile     | 1,213 at 0.8 (edge of its grid) | 1,503 at 0.8 (edge of its grid) | 1,931 at 0.9                    | 3,617 at 0.95                  |
 | Naive        | 1,174 at 1.0 (edge of its grid) | 1,604 at 1.25                   | 2,146 at 1.5                    | 4,223 at 2.25                  |
+
+## Addendum (written after the run, no re-run and no new test-window computation; arithmetic on the outputs above)
+
+**Note on layout:** the heading "2. By velocity segment" appears twice above (a generator layout defect); the first is followed by the two-anchor reading paragraph, the second by the segment tables; no number is affected.
+
+**How to read the comparison statistics.** Two statistics are reported, always labelled by their anchor, and the order is always B3a first (the fair benchmark), then B2 / B2-sqrt, then the naive rule:
+- **Quantile-anchored matched inventory** (the pre-registered statistic): at each of the quantile policy's own alpha points, the comparator's inventory interpolated at that fill rate; undefined where the comparator's curve does not reach.
+- **Comparator-anchored matched inventory** (added before the test-window run): at each of the comparator's own settings, the quantile policy's inventory interpolated at that fill rate.
+Neither is the mean of a common set of points, so their pooled means are not ordered against each other.
+
+**Does the pooled interval for the B3a comparison exclude zero?** Yes for both statistics, but narrowly for one. Pooled, against B3a: comparator-anchored mean 16.0%, item-bootstrap interval [0.7%, 24.9%] (excludes zero by 0.7 percentage points; the mean is dominated by the alpha 0.99 setting, 46.3%, and the 0.80, 0.90 and 0.95 settings give 4.5%, 7.7% and 5.6%); quantile-anchored mean 12.7%, interval [9.5%, 24.4%] (two settings matched, 0.90 and 0.95). The intervals for the low- and high-velocity segments and for the peak include zero, and the settings 0.80 to 0.95 were not bootstrapped one by one, so **an advantage at moderate service levels is suggestive, not established**. Intervals reflect item sampling only, not variation between periods.
+
+**The 0.99 end is steep for the quantile policy, and steeper for B3a.** Marginal average on-hand inventory (units per series-day) per percentage point of fill rate, from the curves in section 5:
+
+| policy | 0.80 to 0.90 | 0.90 to 0.95 | 0.95 to 0.99 |
+|---|---|---|---|
+| Quantile policy | 1.10 | 2.17 | 10.92 |
+| B3a (post-hoc) | 1.41 | 3.76 | 30.63 |
+| B2 / B2-sqrt | 10.10 | 21.55 | 43.56 |
+
+Going from 0.95 to 0.99 costs the quantile policy five times as much per fill-rate point as going from 0.90 to 0.95, so 0.99 is inefficient for it (prediction 2b, confirmed); B3a's step is eight times as steep and is about 2.8 times the quantile policy's, so much of the large reduction at 0.99 comes from B3a's tail being poorly priced, not only from the quantile policy being efficient.
+
+**Cost sweep: results at a grid edge are unresolved.** The minima marked "edge of its grid" in section 7 are not minima of the underlying cost curve: for the naive rule at rho 4 (c = 1.00) and for the target-driven policies at alpha 0.80 (rho 4 and 9; B2 also at rho 19). The statement that the naive rule was cheapest at rho 4 (1,174 against the quantile policy's 1,213) is therefore **unresolved**; a post-hoc extension of the naive grid below c = 1.00 is logged in design.md. The target-driven policies' alpha grids cannot be extended (the quantile models exist only for 0.80, 0.90, 0.95, 0.99 in this range), so their rho 4 and 9 minima stay unresolved.
