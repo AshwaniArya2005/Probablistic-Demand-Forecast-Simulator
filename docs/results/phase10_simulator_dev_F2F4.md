@@ -1,6 +1,6 @@
 # Phase 10 simulator, development run on F2 and F4
 
-Run 2026-09-21 at code commit `48e2152`. Base case L = 3, R = 7 (P = 10); 2 run(s), 2 model unit(s); 100 items, 300 series.
+Run 2026-09-21 at code commit `bc33788`. L = 3, R = 7 (P = 10); 2 run(s), 2 model unit(s); 100 items, 300 series.
 Item cluster bootstrap: 10,000 resamples over items, seed 0; it reflects which items were sampled, **not variation between periods**. The comparator curves have four points (the
 alpha grid), so interpolation is coarse; a quantile point outside a comparator's fill-rate range is "not matched" (no extrapolation).
 Development on **F2 (holiday fold) and F4 (summer fold) only**, tuning data (design.md, Phase 10 definitions, item 1); warm-up = the four Sundays before each fold's first origin. For F2 the peak sub-period is the analogue of the holiday peak one year earlier (cycles starting on or before 2015-01-04); F4 counts as rest. **Not the primary result and not a test of the pre-registered predictions** (those are evaluated on the test window only).

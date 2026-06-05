@@ -360,3 +360,72 @@ def test_the_touch_log_guard_needs_a_table_row_in_section_14(tmp_path, monkeypat
     assert folds.touch_logged() is False                                   # prose or a header does not count
     (tmp_path / "docs" / "design.md").write_text(text.replace("| (no entries) | | |", "| 2026-09-22 | 10 | Phase 10 primary run: forecast tables and replay | no |"), encoding="utf-8")
     assert folds.touch_logged() is True
+
+
+# ---------- sensitivities: random lead times, the zero-demand diagnostic ----------
+def test_a_constant_lead_array_equals_the_scalar_lead_and_random_leads_conserve_stock():
+    d, rv, S = _random_case(3)
+    K, N = S.shape
+    a, b = replay(d, rv, S, 3), replay(d, rv, S, 3, lead=np.full((K, N), 3))
+    assert all((getattr(a, f) == getattr(b, f)).all() for f in ("onhand", "lost", "served", "orders"))
+    lead = np.random.default_rng(0).integers(2, 5, size=(K, N))
+    r = replay(d, rv, S, 3, lead=lead)
+    d0, end = int(rv[0]) + 1, int(rv[-1]) + 3 + 7
+    assert (d[d0:end + 1] == r.served[d0:end + 1] + r.lost[d0:end + 1]).all() and (r.onhand >= 0).all()
+    receipts = r.onhand[d0:end + 1] + r.served[d0:end + 1] - np.vstack([S[0][None, :], r.onhand[d0:end]])
+    expected = np.zeros_like(receipts)
+    for k in range(1, K):
+        for j in range(N):
+            a_day = int(rv[k]) + int(lead[k, j]) + 1 - d0
+            if a_day <= end - d0:
+                expected[a_day, j] += r.orders[k, j]
+    assert (receipts == expected).all()                                  # each order arrives exactly lead + 1 days after its review
+    with pytest.raises(ValueError):
+        replay(d, rv, S, 3, lead=np.full((K, N), -1))
+
+
+def test_orders_can_cross_when_a_later_order_has_a_shorter_lead():
+    demand = {d: 1 for d in list(range(1, 16))}                # one unit a day for days 1 to 15
+    d, rv, S = _one(demand, [10, 10, 10])
+    rep = replay(d, rv, S, 3, lead=np.array([[3], [9], [0]]))   # the day-7 order takes 9 days (arrives 17), the day-14 order 0 (arrives 15)
+    assert rep.orders[:, 0].tolist() == [0, 7, 3]
+    assert rep.onhand[[15, 16, 17], 0].tolist() == [2, 2, 9]
+
+
+def test_zero_demand_flag_and_cell_mask_drop_exactly_those_cycles():
+    T = 14 + 3 + 7 + 1
+    d = np.zeros((T, 2), "int64")
+    d[5, 0] = 2                                                # series 0 has demand only in review 0's protection interval (days 1..10)
+    d[20, 1] = 3                                               # series 1 only in review 1 and 2's (days 8..17 and 15..24)
+    rv = np.array([0, 7, 14])
+    rep = replay(d, rv, np.full((3, 2), 5), 3)
+    t = cycle_table(rep, d, rv, 3, [0, 1, 2], P=10)
+    assert t["zero"].tolist() == [[0, 1], [1, 1], [1, 0]]      # series 1: day 20 lies in review 2's window 15..24 only
+    s_all = item_sums(t, ["a", "b"], ["a", "b"])
+    s_drop = item_sums(t, ["a", "b"], ["a", "b"], cell_mask=(t["zero"] == 0))
+    assert s_all["cycles"].tolist() == [3, 3] and s_drop["cycles"].tolist() == [1, 1]
+    assert s_drop["demanded"].tolist() == s_all["demanded"].tolist()      # dropped cells had no demand in their cycle days, so units demanded do not change
+    assert "zero" not in cycle_table(rep, d, rv, 3, [0, 1, 2])
+
+
+def test_lead_draws_are_uniform_2_to_4_reproducible_and_distinct():
+    import sim_run as sr
+    a, b = sr.lead_draws(), sr.lead_draws()
+    assert len(a) == 10 and a[0][1].shape == (29, 300) and set(np.unique(a[0][1])) == {2, 3, 4}
+    assert all((x[1] == y[1]).all() for x, y in zip(a, b)) and not (a[0][1] == a[1][1]).all()
+    assert abs(np.concatenate([x[1].ravel() for x in a]).mean() - 3.0) < 0.02        # the mean equals the nominal lead time
+
+
+def test_expected_outcome_checks_evaluate_their_statements():
+    import sim_run as sr
+    keys = [(p, a) for p in ("posthoc", "point", "quantile") for a in sr.ALPHAS]
+    base = {k: dict(fill=0.95, cs=0.95, inv=10.0) for k in keys}
+    base.update(red_posthoc=0.16, red_point=0.29)
+    same = {k: dict(v) for k, v in base.items() if isinstance(k, tuple)} | dict(red_posthoc=0.16, red_point=0.29)
+    assert all(ok for _, ok in sr.expected_outcomes("nofp", base, same))                 # identical results satisfy the no-future-price expectations
+    assert not all(ok for _, ok in sr.expected_outcomes("randlead", base, same))         # no drop in service: the random-lead expectation does not hold
+    worse = {k: dict(fill=0.94, cs=0.93, inv=10.0) for k in keys} | dict(red_posthoc=0.10, red_point=0.2)
+    assert all(ok for _, ok in sr.expected_outcomes("randlead", base, worse))
+    dropped = {k: dict(fill=0.95, cs=0.90, inv=10.0) for k in keys} | dict(red_posthoc=0.1, red_point=0.2)
+    assert all(ok for _, ok in sr.expected_outcomes("zerodemand", base, dropped))
+    assert sr.expected_outcomes("costext", base, same) == []

@@ -37,6 +37,10 @@ class Run:
     dates: pd.DatetimeIndex    # all review dates, warm-up first
     n_warmup: int
     boundary: pd.Timestamp = None     # cycles starting on or before this day form the "peak" sub-period (None: no split)
+    P: int = 10                       # protection interval = R + L
+    L: int = 3                        # nominal lead time (the policies always plan with it)
+    lead: np.ndarray = None           # optional (K, N) realised lead time of each order (random-lead sensitivity)
+    exclude_zero: bool = False        # hindsight diagnostic: drop cells whose protection-interval demand was zero, from every policy alike
 
 
 def load_market(ids):
@@ -56,7 +60,7 @@ def levels_for(run, c_grid, ids, alphas=ALPHAS):
     out, forms, seen = {}, {}, []
     for u, (cal, ud) in enumerate(zip(run.cals, run.unit_dates)):
         ud = pd.DatetimeIndex(ud)
-        lv, f = sp.all_levels(run.tab[run.tab.date.isin(ud)], cal, P, c_grid, alphas=alphas, dates=ud, ids=ids)
+        lv, f = sp.all_levels(run.tab[run.tab.date.isin(ud)], cal, run.P, c_grid, alphas=alphas, dates=ud, ids=ids)
         for k, v in lv.items():
             out.setdefault(k, []).append(v)
         forms[u] = f
@@ -65,20 +69,20 @@ def levels_for(run, c_grid, ids, alphas=ALPHAS):
     return {k: np.concatenate(v, axis=0) for k, v in out.items()}, forms
 
 
-def replay_run(run, levels, dem, L=L):
-    days = dem.index
+def replay_run(run, levels, dem):
+    L, days = run.L, dem.index
     rv = np.array([days.get_loc(d) for d in run.dates])
     metric_k = np.arange(run.n_warmup, len(rv))
     tables = {}
     for k, S in levels.items():
-        rep = sim.replay(dem.to_numpy(), rv, S, L)
-        tables[k] = sim.cycle_table(rep, dem.to_numpy(), rv, L, metric_k)
+        rep = sim.replay(dem.to_numpy(), rv, S, L, lead=run.lead)
+        tables[k] = sim.cycle_table(rep, dem.to_numpy(), rv, L, metric_k, P=run.P)
     return tables, (days[rv[metric_k[0]] + L + 1], days[rv[-1] + L + sim.REVIEW])
 
 
-def peak_mask(run, L=L):
+def peak_mask(run):
     """metric cycles in the peak sub-period: cycle start day (review + L + 1) on or before run.boundary; all cycles when there is no boundary"""
-    starts = pd.DatetimeIndex(run.dates[run.n_warmup:]) + pd.Timedelta(days=L + 1)
+    starts = pd.DatetimeIndex(run.dates[run.n_warmup:]) + pd.Timedelta(days=run.L + 1)
     return np.ones(len(starts), bool) if run.boundary is None else np.asarray(starts <= run.boundary)
 
 
@@ -93,7 +97,7 @@ def pooled(all_tables, key, item_of_id, items, col_mask=None, period=None):
         t, ids = tables[key], np.asarray(item_of_id)
         if col_mask is not None:
             t, ids = {k: v[:, col_mask] for k, v in t.items()}, ids[col_mask]
-        s = sim.item_sums(t, ids, items, cm)
+        s = sim.item_sums(t, ids, items, cm, (t['zero'] == 0) if run.exclude_zero else None)
         tot = s if tot is None else {k: tot[k] + s[k] for k in s}
     return tot
 
@@ -181,17 +185,23 @@ def compare_table(all_tables, item_of_id, items, comparators, W, col_mask=None, 
     return pd.DataFrame(rows)
 
 
-def cost_table(all_tables, price, dem, key_lists):
-    """minimum total cost over each policy's own settings, per rho (units: currency, pooled over the runs)"""
-    med = {}
+def cost_totals(all_tables, price):
+    """{(key, rho): total cost pooled over the runs}; price = item-store median sell_price over each run's evaluated days"""
     total = {}
     for run, tables, (d0, d1) in all_tables:
         pr = price.loc[d0:d1].median()
         pr = pr.fillna(price.median()).fillna(price.stack().median()).to_numpy()
         for key, t in tables.items():
+            keep = (t["zero"] == 0) if run.exclude_zero else 1
             for rho in sim.RHOS:
-                h, s = sim.cost_parts(pr, t["onhand"].sum(0), t["lost"].sum(0), rho)
+                h, s = sim.cost_parts(pr, (t["onhand"] * keep).sum(0), (t["lost"] * keep).sum(0), rho)
                 total[(key, rho)] = total.get((key, rho), 0.0) + float(h.sum() + s.sum())
+    return total
+
+
+def cost_table(all_tables, price, dem, key_lists):
+    """minimum total cost over each policy's own settings, per rho (units: currency, pooled over the runs); a minimum at either end of the policy's grid is flagged"""
+    total = cost_totals(all_tables, price)
     rows = []
     for name, keys in key_lists.items():
         r = {"policy": name}
@@ -301,7 +311,7 @@ def main_report(title, runs, path, all_tables, grid, log, top, bottom, forms, it
                 "Naive": [("naive", c) for c in grid]}
     md = f"""# {title}
 
-Run {date.today()} at code commit `{head}`. Base case L = 3, R = 7 (P = 10); {len(runs)} run(s), {n_units} model unit(s); {len(items)} items, {len(seg_of_id)} series.
+Run {date.today()} at code commit `{head}`. L = {runs[0].L}, R = 7 (P = {runs[0].P}); {len(runs)} run(s), {n_units} model unit(s); {len(items)} items, {len(seg_of_id)} series.
 Item cluster bootstrap: {BOOT_B:,} resamples over items, seed {BOOT_SEED}; it reflects which items were sampled, **not variation between periods**. The comparator curves have four points (the
 alpha grid), so interpolation is coarse; a quantile point outside a comparator's fill-rate range is "not matched" (no extrapolation).
 {extra}
@@ -385,14 +395,139 @@ def dev_runs():
     return runs
 
 
-def primary_runs():
-    """the single test-window run: model versions v0..v4 serve their review dates (design.md section 5), four warm-up reviews then the 25 test reviews"""
+def test_runs(P=10, L=3, prefix="sim_test", leads=None, exclude_zero=False):
+    """the test-window replay input: model versions v0..v4 serve their review dates (design.md section 5), four warm-up reviews then the 25 test reviews. leads: list of
+    (seed, (K, N) lead times) for the random-lead sensitivity, one run per draw; exclude_zero: the hindsight diagnostic."""
     tabs, cals, uds = [], [], []
     for v in versions.CUTOFFS:
-        tabs.append(pd.read_parquet(PROCESSED / f"sim_test_v{v}_P{P}_tab.parquet"))
-        cals.append(pd.read_parquet(PROCESSED / f"sim_test_v{v}_P{P}_cal.parquet"))
+        tabs.append(pd.read_parquet(PROCESSED / f"{prefix}_v{v}_P{P}_tab.parquet"))
+        cals.append(pd.read_parquet(PROCESSED / f"{prefix}_v{v}_P{P}_cal.parquet"))
         uds.append(list(versions.use_dates(v)))
-    return [Run("test window", pd.concat(tabs, ignore_index=True), cals, uds, versions.review_dates(), 4, HOLIDAY_END)]
+    tab, dates = pd.concat(tabs, ignore_index=True), versions.review_dates()
+    kw = dict(P=P, L=L, exclude_zero=exclude_zero)
+    if leads is None:
+        return [Run("test window", tab, cals, uds, dates, 4, HOLIDAY_END, **kw)]
+    return [Run(f"test window, lead draw {s}", tab, cals, uds, dates, 4, HOLIDAY_END, lead=lead, **kw) for s, lead in leads]
+
+
+def primary_runs():
+    return test_runs()
+
+
+def lead_draws(K=29, N=300, n=10):
+    """n independent draws of the lead time of every order, Uniform{2, 3, 4} (mean 3, the nominal), seeds 0 .. n - 1"""
+    return [(s, np.random.default_rng(s).integers(2, 5, size=(K, N))) for s in range(n)]
+
+
+def summary(ev):
+    """pooled fill rate, cycle service and inventory per policy setting, and the comparator-anchored mean reduction against B3a and B2"""
+    one = np.ones((1, len(ev["items"])))
+    args = (ev["item_of_id"], ev["items"])
+    out = {}
+    for key in ev["all_tables"][0][1]:
+        st = sim.curve_stats(one, pooled(ev["all_tables"], key, *args))
+        out[key] = dict(fill=float(st["fill"][0]), cs=float(st["cycle_service"][0]), inv=float(st["inv"][0]))
+    sums_of = {k: pooled(ev["all_tables"], k, *args) for p in POLICIES for k in [(p, a) for a in ALPHAS]}
+    for name in ("posthoc", "point"):
+        r = reductions(sums_of, [(name, a) for a in ALPHAS], one, "c")[0]
+        out[f"red_{name}"] = float(np.nanmean(r)) if (~np.isnan(r)).any() else float("nan")
+    return out
+
+
+def compare_with_base(base, sens):
+    rows = []
+    for p, name in (("posthoc", "B3a"), ("point", "B2 / B2-sqrt"), ("quantile", "Quantile")):
+        for a in ALPHAS:
+            b, s = base[(p, a)], sens[(p, a)]
+            rows.append({"policy": name, "alpha": a, "fill base": f"{b['fill']:.4f}", "fill here": f"{s['fill']:.4f}", "cycle service base": f"{b['cs']:.4f}", "cycle service here": f"{s['cs']:.4f}",
+                         "avg on-hand base": f"{b['inv']:.2f}", "avg on-hand here": f"{s['inv']:.2f}"})
+    return pd.DataFrame(rows)
+
+
+def expected_outcomes(kind, base, sens):
+    """the expected outcomes committed in design.md before the run, as (statement, holds) pairs"""
+    q = lambda d, k, a: d[("quantile", a)][k]
+    out = []
+    if kind == "L7":
+        out.append(("quantile policy: cycle service above target at every alpha", all(q(sens, "cs", a) > a for a in ALPHAS)))
+        out.append(("comparator-anchored mean reduction against B3a is positive and within 8 percentage points of the base case", sens["red_posthoc"] > 0 and abs(sens["red_posthoc"] - base["red_posthoc"]) <= 0.08))
+        out.append(("B2 still over-protects: its cycle service exceeds target by more than 0.05 at alpha 0.80", sens[("point", 0.80)]["cs"] - 0.80 > 0.05))
+        out.append(("quantile policy holds more inventory than in the base case at every alpha", all(q(sens, "inv", a) > q(base, "inv", a) for a in ALPHAS)))
+    elif kind == "randlead":
+        out.append(("quantile policy: cycle service below the base case at every alpha", all(q(sens, "cs", a) < q(base, "cs", a) for a in ALPHAS)))
+        out.append(("quantile policy: fill rate below the base case at every alpha", all(q(sens, "fill", a) < q(base, "fill", a) for a in ALPHAS)))
+        out.append(("comparator-anchored mean reduction against B3a is positive", sens["red_posthoc"] > 0))
+    elif kind == "nofp":
+        out.append(("quantile policy: cycle service within 0.01 of the base case at every alpha", all(abs(q(sens, "cs", a) - q(base, "cs", a)) <= 0.01 for a in ALPHAS)))
+        out.append(("quantile policy: average on-hand within 5% of the base case at every alpha", all(abs(q(sens, "inv", a) / q(base, "inv", a) - 1) <= 0.05 for a in ALPHAS)))
+        out.append(("comparator-anchored mean reduction against B3a within 5 percentage points of the base case", abs(sens["red_posthoc"] - base["red_posthoc"]) <= 0.05))
+    elif kind == "zerodemand":
+        allkeys = [k for k in sens if isinstance(k, tuple)]
+        out.append(("fill rate identical to the base case for every policy setting (dropped cells had no demand)", all(abs(sens[k]["fill"] - base[k]["fill"]) < 1e-9 for k in allkeys)))
+        out.append(("cycle service below the base case for every quantile, B3a and B2 setting", all(sens[(p, a)]["cs"] < base[(p, a)]["cs"] for p in POLICIES for a in ALPHAS)))
+        out.append(("comparator-anchored mean reduction against B3a is positive", sens["red_posthoc"] > 0))
+    return out
+
+
+def sens_report(kind, title, out, extra_note, grid=FROZEN_C_GRID):
+    base = evaluate(test_runs(), FROZEN_C_GRID)
+    runs = {"L7": lambda: test_runs(P=14, L=7), "randlead": lambda: test_runs(leads=lead_draws()), "nofp": lambda: test_runs(prefix="sim_test_nofp"),
+            "zerodemand": lambda: test_runs(exclude_zero=True), "costext": lambda: test_runs()}[kind]()
+    ev = evaluate(runs, grid)
+    b, s = summary(base), summary(ev)
+    exp = expected_outcomes(kind, b, s)
+    sec = ""
+    if exp:
+        sec = "## 0. Expected outcomes (design.md, Phase 10 sensitivities entry), evaluated mechanically\n\n" + "\n".join(
+            f"- {'**HELD**' if ok else '**DID NOT HOLD**'}: {txt}" for txt, ok in exp) + "\n\n" + compare_with_base(b, s).to_markdown(index=False) + \
+            f"\n\nComparator-anchored mean reduction of the quantile policy against B3a: base {100 * b['red_posthoc']:.1f}%, here {100 * s['red_posthoc']:.1f}%; against B2 / B2-sqrt: base {100 * b['red_point']:.1f}%, here {100 * s['red_point']:.1f}%.\n"
+    forms = [ev["forms"][0]] if kind == "randlead" else ev["forms"]
+    md = main_report(title, runs, out, ev["all_tables"], ev["grid"], ev["log"], ev["top"], ev["bottom"], forms, ev["item_of_id"], ev["seg_of_id"], ev["items"], ev["dem"], ev["price"],
+                     extra_note + "\n\n" + sec)
+    return md, ev, base
+
+
+def costext_report(out):
+    """post-hoc: the primary run's cost sweep with the naive grid extended below its lower edge (design.md, Phase 10 sensitivities entry). Nothing else changes."""
+    grid = tuple(sorted(set(FROZEN_C_GRID) | {0.25, 0.5, 0.75}))
+    ev = evaluate(test_runs(), grid)
+    prim = pd.read_csv(ROOT / "docs" / "results" / "phase10_simulator_primary.csv")
+    got = pooled(ev["all_tables"], ("quantile", 0.8), ev["item_of_id"], ev["items"])
+    assert abs(fill_of(got) - float(prim[(prim.iloc[:, 0].str.startswith("Quantile")) & (prim.iloc[:, 1] == "alpha 0.8")].iloc[0, 2])) < 1e-4, "the base-case numbers must reproduce the primary run"
+    total = cost_totals(ev["all_tables"], ev["price"])
+    keylists = {"B3a": [("posthoc", a) for a in ALPHAS], "B2 / B2-sqrt": [("point", a) for a in ALPHAS], "Quantile": [("quantile", a) for a in ALPHAS], "Naive, primary grid": [("naive", c) for c in FROZEN_C_GRID],
+                "Naive, extended grid (post-hoc)": [("naive", c) for c in grid]}
+    curve = pd.DataFrame([{"c": c, **{f"rho {r}": f"{total[(('naive', c), r)]:,.0f}" for r in sim.RHOS}} for c in grid if c <= 3.0])
+    md = f"""# Phase 10 cost sweep with the naive grid extended (post-hoc)
+
+Run {date.today()} at code commit `{subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()}`. **Post-hoc**: made after the primary run showed the naive rule's rho 4 minimum at
+the lower edge of its grid (c = 1.00). The naive grid is extended downward by 0.25 (floor 0.25, the pre-registered floor); nothing else changes and the base-case numbers reproduce the primary run.
+Test-window data, logged in the touch log as its own entry.
+
+## Minimum total cost per policy, per rho (currency units; a minimum at either end of a grid is flagged)
+
+{cost_table(ev["all_tables"], ev["price"], ev["dem"], keylists).to_markdown(index=False)}
+
+## Naive rule: total cost by c (c up to 3.00)
+
+{curve.to_markdown(index=False)}
+
+The target-driven policies' minima at alpha 0.80 cannot be extended (no quantile models between 0.50 and 0.80), so those results stay **unresolved**.
+"""
+    out.write_text(md, encoding="utf-8")
+    return md
+
+
+SENS = {"L7": ("Phase 10 sensitivity L7", "phase10_sens_L7.md", "Phase 10 sensitivity: lead time 7 (protection interval 14)",
+               "**Sensitivity: lead time 7** (P = 14, cycles t + 8 .. t + 14); model versions refit at horizon 14 by `ml/sim_rows.py testP14`; everything else as the primary run."),
+        "randlead": ("Phase 10 sensitivity randlead", "phase10_sens_randlead.md", "Phase 10 sensitivity: random lead time Uniform{2, 3, 4}",
+                     "**Sensitivity: random lead time.** Each order's lead time is drawn Uniform{2, 3, 4} (mean 3); all policies plan with the nominal 3; 10 independent draws (seeds 0 to 9) are pooled; "
+                     "cycles keep their nominal windows. With R = 7 and leads of 2 to 4 days no order can overtake an earlier one, so no crossing occurs in this design (the engine supports it and is tested)."),
+        "nofp": ("Phase 10 sensitivity nofp", "phase10_sens_nofp.md", "Phase 10 sensitivity: no future-price inputs",
+                 "**Sensitivity: no future-price inputs.** Quantile and mean models refit without the planned-window price features (the Phase 7 `nofutprice` arm) by `ml/sim_rows.py testnofp`; B2 and B3a use the same refit point forecast."),
+        "zerodemand": ("Phase 10 diagnostic zerodemand", "phase10_diag_zerodemand.md", "Phase 10 diagnostic: excluding zero-demand cycles (hindsight)",
+                       "**Hindsight diagnostic, never the headline.** Every (cycle, series) cell whose realised demand over the protection interval t + 1 .. t + P was zero is dropped from every policy's metrics alike."),
+        "costext": ("Phase 10 cost extension", "phase10_cost_extended.md", "", "")}
 
 
 if __name__ == "__main__":
@@ -410,8 +545,20 @@ if __name__ == "__main__":
         print(main_report("Phase 10 simulator, primary test-window run", runs, out, ev["all_tables"], ev["grid"], ev["log"], ev["top"], ev["bottom"], ev["forms"], ev["item_of_id"],
                           ev["seg_of_id"], ev["items"], ev["dem"], ev["price"], extra, predictions=True))
         raise SystemExit(0)
+    if what in SENS:
+        key, fname, title, note = SENS[what]
+        out = ROOT / "docs" / "results" / fname
+        if not touch_logged(key):
+            raise SystemExit(f"refusing to run: no '{key}' row in the touch log (docs/design.md section 14)")
+        if out.exists():
+            raise SystemExit(f"{out.name} exists: each test-window run is made once; a re-run needs a logged reason and a new touch-log entry")
+        if what == "costext":
+            print(costext_report(out))
+        else:
+            print(sens_report(what, title, out, note)[0])
+        raise SystemExit(0)
     if what != "dev":
-        raise SystemExit("usage: sim_run.py dev | primary")
+        raise SystemExit("usage: sim_run.py dev | primary | " + " | ".join(SENS))
     runs = dev_runs()
     for r in runs:
         from folds import assert_tuning_only

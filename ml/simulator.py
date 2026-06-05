@@ -20,10 +20,11 @@ class Replay:
     orders: np.ndarray        # (K, N) order quantity placed at each review after the first (row 0 is zeros)
 
 
-def replay(demand, reviews, S, L, R=REVIEW):
+def replay(demand, reviews, S, L, R=REVIEW, lead=None):
     """demand (T, N) non-negative ints indexed by day; reviews: K increasing day indices exactly R apart; S (K, N) order-up-to levels (ints >= 0).
     Starts after the close of reviews[0] with on-hand = S[0] and nothing on order. Days before reviews[0] + 1 are left as zeros. Simulates up to
-    reviews[-1] + L + R, the last day of the last cycle."""
+    reviews[-1] + L + R, the last day of the last cycle. lead: optional (K, N) integer lead time of the order placed at each review (random-lead sensitivity; the policies still plan
+    with the nominal L and the cycles keep their nominal windows; orders may cross); None means every order takes L."""
     if not (np.issubdtype(np.asarray(S).dtype, np.integer) and np.issubdtype(np.asarray(demand).dtype, np.integer)):
         raise TypeError("S and demand must be integer arrays (units are indivisible; policies round S up with ceil)")
     demand, S, reviews = np.asarray(demand, "int64"), np.asarray(S, "int64"), np.asarray(reviews, "int64")
@@ -34,7 +35,11 @@ def replay(demand, reviews, S, L, R=REVIEW):
     if demand.shape != (demand.shape[0], N) or demand.shape[0] <= end:
         raise ValueError(f"demand must have {N} columns and cover day {end}")
     on = S[0].copy()
-    arrivals = np.zeros((end + L + 2, N), "int64")
+    if lead is not None:
+        lead = np.asarray(lead, "int64")
+        if lead.shape != (K, N) or (lead < 0).any():
+            raise ValueError("lead must be a non-negative (K, N) integer array")
+    arrivals = np.zeros((end + (L if lead is None else int(lead.max())) + 2, N), "int64")
     onhand, lost, served = (np.zeros((end + 1, N), "int64") for _ in range(3))
     orders = np.zeros((K, N), "int64")
     rev_at = {int(d): k for k, d in enumerate(reviews)}
@@ -47,7 +52,10 @@ def replay(demand, reviews, S, L, R=REVIEW):
         if k is not None and k > 0:
             q = np.maximum(S[k] - (on + arrivals[d + 1:].sum(0)), 0)          # order-up-to: S minus on-hand minus on-order
             orders[k] = q
-            arrivals[d + L + 1] += q
+            if lead is None:
+                arrivals[d + L + 1] += q
+            else:
+                arrivals[d + lead[k] + 1, np.arange(N)] += q
     return Replay(onhand, lost, served, orders)
 
 
@@ -56,13 +64,18 @@ def cycle_days(reviews, L, R=REVIEW):
     return np.asarray(reviews, "int64")[:, None] + L + 1 + np.arange(R)
 
 
-def cycle_table(rep, demand, reviews, L, metric_k, R=REVIEW):
+def cycle_table(rep, demand, reviews, L, metric_k, R=REVIEW, P=None):
     """per metric cycle and series: units demanded, lost, and on-hand summed over the cycle's days. metric_k = indices into `reviews` that count
-    (warm-up reviews are left out by the caller). Returns dict of (m, N) arrays."""
+    (warm-up reviews are left out by the caller). With P given, "zero" flags the cells whose demand over the protection interval t + 1 .. t + P was zero (the hindsight
+    diagnostic of design.md section 9). Returns dict of (m, N) arrays."""
     days = cycle_days(reviews, L, R)[np.asarray(metric_k)]
     dem = np.asarray(demand, "int64")[days]                    # (m, R, N)
     lost = rep.lost[days]
-    return dict(demanded=dem.sum(1), lost=lost.sum(1), onhand=rep.onhand[days].sum(1), stockout=(lost.sum(1) > 0).astype("int64"))
+    out = dict(demanded=dem.sum(1), lost=lost.sum(1), onhand=rep.onhand[days].sum(1), stockout=(lost.sum(1) > 0).astype("int64"))
+    if P is not None:
+        window = np.asarray(reviews, "int64")[np.asarray(metric_k)][:, None] + 1 + np.arange(P)
+        out["zero"] = (np.asarray(demand, "int64")[window].sum(1) == 0).astype("int64")
+    return out
 
 
 def cost_parts(price, onhand_days, lost, rho):
@@ -101,18 +114,19 @@ def matched_reduction(fill_q, inv_q, fill_c, inv_c, anchor):
     raise ValueError("anchor must be 'q' or 'c'")
 
 
-def item_sums(table, ids, items, cycle_mask=None):
+def item_sums(table, ids, items, cycle_mask=None, cell_mask=None):
     """aggregate per-(cycle, series) arrays to per-item sums: dict of (n_items,) arrays for demanded, lost, onhand, stockout, cycles, days.
-    items: the sorted unique item ids; cycle_mask selects cycles (sub-period); series not in `ids` order are not reordered."""
-    keep = np.ones(table["lost"].shape[0], bool) if cycle_mask is None else np.asarray(cycle_mask, bool)
+    items: the sorted unique item ids; cycle_mask (m,) selects cycles (sub-period); cell_mask (m, N) selects (cycle, series) cells (the zero-demand diagnostic drops cells)."""
+    m = table["lost"].shape[0]
+    keep = np.ones((m, len(ids)), bool)
+    if cycle_mask is not None:
+        keep &= np.asarray(cycle_mask, bool)[:, None]
+    if cell_mask is not None:
+        keep &= np.asarray(cell_mask, bool)
     idx = {it: i for i, it in enumerate(items)}
     col = np.array([idx[i] for i in ids])
-    out = {}
-    for k in ("demanded", "lost", "onhand", "stockout"):
-        per_series = table[k][keep].sum(0)
-        out[k] = np.bincount(col, weights=per_series, minlength=len(items))
-    m = int(keep.sum())
-    out["cycles"] = np.bincount(col, minlength=len(items)) * m
+    out = {k: np.bincount(col, weights=(table[k] * keep).sum(0), minlength=len(items)) for k in ("demanded", "lost", "onhand", "stockout")}
+    out["cycles"] = np.bincount(col, weights=keep.sum(0), minlength=len(items))
     out["days"] = out["cycles"] * REVIEW
     return out
 
