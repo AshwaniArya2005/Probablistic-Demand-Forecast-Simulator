@@ -1,0 +1,36 @@
+policy,setting,fill rate,cycle service,avg on-hand (units per series-day)
+"B3a (point forecast + empirical residual quantiles, post-hoc)",alpha 0.8,0.9306,0.8712,10.89
+"B3a (point forecast + empirical residual quantiles, post-hoc)",alpha 0.9,0.9627,0.9404,15.25
+"B3a (point forecast + empirical residual quantiles, post-hoc)",alpha 0.95,0.9794,0.9741,21.29
+"B3a (point forecast + empirical residual quantiles, post-hoc)",alpha 0.99,0.9955,0.9968,69.72
+"B2 / B2-sqrt: point policy, normal sigma (form per segment below)",alpha 0.8,0.9760,0.9535,24.46
+"B2 / B2-sqrt: point policy, normal sigma (form per segment below)",alpha 0.9,0.9858,0.9764,34.16
+"B2 / B2-sqrt: point policy, normal sigma (form per segment below)",alpha 0.95,0.9897,0.9857,42.35
+"B2 / B2-sqrt: point policy, normal sigma (form per segment below)",alpha 0.99,0.9932,0.9922,58.04
+Quantile policy (headline),alpha 0.8,0.9295,0.8662,10.31
+Quantile policy (headline),alpha 0.9,0.9599,0.9315,13.52
+Quantile policy (headline),alpha 0.95,0.9759,0.9642,16.92
+Quantile policy (headline),alpha 0.99,0.9958,0.9965,37.68
+Naive (c x mu28 x P),c 1.00,0.8539,0.7162,7.19
+Naive (c x mu28 x P),c 1.25,0.9172,0.8350,10.28
+Naive (c x mu28 x P),c 1.50,0.9482,0.8994,13.69
+Naive (c x mu28 x P),c 1.75,0.9643,0.9331,17.28
+Naive (c x mu28 x P),c 2.00,0.9738,0.9548,21.05
+Naive (c x mu28 x P),c 2.25,0.9802,0.9685,24.98
+Naive (c x mu28 x P),c 2.50,0.9842,0.9752,28.89
+Naive (c x mu28 x P),c 2.75,0.9865,0.9794,32.80
+Naive (c x mu28 x P),c 3.00,0.9885,0.9844,36.85
+Naive (c x mu28 x P),c 3.50,0.9905,0.9890,44.89
+Naive (c x mu28 x P),c 4.00,0.9916,0.9918,53.17
+Naive (c x mu28 x P),c 4.50,0.9924,0.9930,61.52
+Naive (c x mu28 x P),c 5.00,0.9930,0.9932,69.96
+Naive (c x mu28 x P),c 5.50,0.9935,0.9933,78.48
+Naive (c x mu28 x P),c 6.00,0.9941,0.9934,87.06
+Naive (c x mu28 x P),c 6.50,0.9944,0.9938,95.81
+Naive (c x mu28 x P),c 7.00,0.9945,0.9939,104.37
+Naive (c x mu28 x P),c 7.50,0.9947,0.9941,113.39
+Naive (c x mu28 x P),c 8.00,0.9948,0.9942,122.23
+Naive (c x mu28 x P),c 8.50,0.9950,0.9946,131.21
+Naive (c x mu28 x P),c 9.00,0.9950,0.9947,140.11
+Naive (c x mu28 x P),c 9.50,0.9951,0.9947,149.17
+Naive (c x mu28 x P),c 10.00,0.9951,0.9949,158.18
