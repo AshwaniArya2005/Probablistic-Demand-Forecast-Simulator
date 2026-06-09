@@ -10,3 +10,4 @@ Fast suite and real-data tests, re-run and recorded at each phase commit (`ml/re
 | 2026-09-21 | Phase 7 | 436e63e | clean | fast: 321 passed, 0 failed, 2 skipped | realdata: 9 passed, 0 failed, 2 skipped |
 | 2026-09-21 | Phase 8 | 1a9e36a | clean | fast: 341 passed, 0 failed, 1 skipped | realdata: 9 passed, 0 failed, 1 skipped |
 | 2026-09-21 | Phase 9 | 7dc8ec0 | clean | fast: 358 passed, 0 failed, 1 skipped | realdata: 9 passed, 0 failed, 1 skipped |
+| 2026-09-21 | Phase 10 | 1f68451 | clean | fast: 397 passed, 0 failed, 0 skipped | realdata: 9 passed, 0 failed, 0 skipped |
