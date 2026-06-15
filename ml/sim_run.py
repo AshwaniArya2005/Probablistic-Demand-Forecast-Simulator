@@ -365,10 +365,12 @@ Final grid: {grid}
     return md
 
 
-def evaluate(runs, grid=None):
+def evaluate(runs, grid=None, demand_transform=None):
     """replay everything; the naive grid is widened by the pre-registered rule unless a frozen `grid` is given (the test-window run uses the frozen one)"""
     ids = sorted(runs[0].tab.id.unique())
     dem, price, item_of_id, seg_of_id = load_market(ids)
+    if demand_transform is not None:                      # null tests only: realised demand is replaced, the forecasts are untouched
+        dem = demand_transform(dem)
     items = sorted(set(item_of_id))
     all_tables, forms = [], []
     for run in runs:
