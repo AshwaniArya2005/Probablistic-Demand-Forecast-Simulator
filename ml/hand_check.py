@@ -24,12 +24,14 @@ run = (sr.dev_runs()[1] if kind == "tuning" else sr.test_runs()[0])
 ids = sorted(run.tab.id.unique())
 dem, _, item_of, seg_of = sr.load_market(ids)
 days = dem.index
-rv_dates = list(run.dates)
+K, W = 10, run.n_warmup                                                         # four warm-up reviews and the first six counted ones
+rv_dates = list(run.dates)[:K]
 rv = [days.get_loc(d) for d in rv_dates]
-K, W = len(rv), run.n_warmup
 levels, _ = sr.levels_for(run, (2.0,), ids)
+levels = {k: v[:K] for k, v in levels.items()}
 tab = run.tab.set_index(["id", "date"])
-panel = pd.read_parquet(PROCESSED / "panel.parquet", columns=["id", "date", "sales"]).set_index(["id", "date"]).sales
+panel_all = pd.read_parquet(PROCESSED / "panel.parquet", columns=["id", "date", "sales", "closed"]).set_index(["id", "date"])
+panel = panel_all.sales
 
 
 # ---- choose the series by a fixed rule: the first mid-velocity id (alphabetical) with at least one lost unit in the counted weeks under the quantile policy at alpha 0.90 ----
@@ -43,6 +45,7 @@ mid = [j for j, s in enumerate(seg_of) if s == "mid"]
 pick = next(j for j in mid if tq["lost"][:, j].sum() > 0)
 sid = ids[pick]
 col = [int(x) for x in dem[sid].to_numpy()]                                    # daily sales as python ints
+closed = [bool(panel_all.closed.get((sid, d), False)) for d in days]           # closed days (the Dec 25 rule): sales are kept as sales but are not demand for the 28-day mean
 checks, log_lines = [], []
 
 
@@ -51,9 +54,10 @@ def check(name, ok, detail=""):
 
 
 # ---- inputs recomputed from raw sales ----
-mu28_hand = [sum(col[d - 27:d + 1]) / 28.0 for d in rv]
+mu28_hand = [sum(col[i] for i in range(d - 27, d + 1) if not closed[i]) / sum(1 for i in range(d - 27, d + 1) if not closed[i]) for d in rv]      # open days only, docs/features.md conventions
 mu28_tab = [float(tab.loc[(sid, dt), "mu28"]) for dt in rv_dates]
-check("mu28 equals the mean of the 28 sales days ending on each review date", all(abs(a - b) < 1e-9 for a, b in zip(mu28_hand, mu28_tab)), f"max abs diff {max(abs(a - b) for a, b in zip(mu28_hand, mu28_tab)):.2e}")
+check("mu28 equals the mean of the open sales days among the 28 ending on each review date (closed days excluded, docs/features.md; float32 storage, relative tolerance 1e-6)", all(abs(a - b) <= 1e-6 * max(1.0, abs(a)) for a, b in zip(mu28_hand, mu28_tab)),
+      f"max abs diff {max(abs(a - b) for a, b in zip(mu28_hand, mu28_tab)):.2e}")
 S_naive_hand = [math.ceil(round(2.0 * m * P, 9)) for m in mu28_hand]
 S_quant_hand = [math.ceil(round(float(tab.loc[(sid, dt), "q90"]), 9)) for dt in rv_dates]
 check("naive levels ceil(2 x mu28 x P) match the engine's input", S_naive_hand == [int(x) for x in levels[("naive", 2.0)][:, pick]])
@@ -106,7 +110,7 @@ summary = f"""# Hand recomputation of one series (Phase 10 check, {kind})
 
 Run {date.today()}. One mid-velocity series (chosen by a fixed rule: the first mid-velocity series, alphabetically, with at least one lost unit in the six counted weeks under the quantile policy at alpha 0.90;
 id withheld), ten review weeks (four warm-up, six counted), {kind} data. Every quantity below was recomputed with plain-Python integers and lists that share no code with `ml/simulator.py` and compared with the engine:
-the 28-day means from raw sales, the order-up-to levels of the naive rule (c = 2) and of the quantile policy (alpha 0.90), the full day-by-day stock path, the orders, and each counted cycle's demand, lost units,
+the 28-day open-day means from raw sales (closed days excluded, as in docs/features.md), the order-up-to levels of the naive rule (c = 2) and of the quantile policy (alpha 0.90), the full day-by-day stock path, the orders, and each counted cycle's demand, lost units,
 stock-days and stockout flag. The day-by-day table itself contains one series' daily sales and is kept out of the repository.
 
 **Result: {'all ' + str(len(checks)) + ' checks agree' if ok else 'DISAGREEMENT, see below'}.**
