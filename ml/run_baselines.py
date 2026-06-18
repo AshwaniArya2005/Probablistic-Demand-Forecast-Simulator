@@ -12,6 +12,8 @@ from features import PS
 from folds import FOLDS, origins, select
 from models import REGISTRY
 
+BASELINES = ("naive", "ma28", "snaive")
+
 feats = pd.read_parquet(PROCESSED / "features.parquet")
 seg = pd.read_parquet(PROCESSED / "panel.parquet", columns=["id", "segment"]).drop_duplicates("id").set_index("id").segment
 
@@ -21,7 +23,7 @@ for fold in FOLDS:
         sel = select(feats, fold, P).reset_index(drop=True)
         y = sel[f"y_p{P}"].to_numpy("float64")
         scale = metrics.naive_scale(feats, P, before=origins(fold).min())       # only targets that ended before the fold began
-        for name, cls in REGISTRY.items():
+        for name, cls in ((n, REGISTRY[n]) for n in BASELINES):                        # only the stateless baselines: REGISTRY also holds the learned models since Phase 6
             m = cls(P)                                                               # baselines are stateless: nothing to fit
             p = m.predict(sel)
             mase, used, excl = metrics.mase(y, p, sel.id, scale)

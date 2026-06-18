@@ -1,0 +1,18 @@
+{
+  "name": "demand-forecast-demo-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express API serving the precomputed results of the probabilistic demand forecasting simulator (no live model)",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "pg": "^8.13.1"
+  }
+}
