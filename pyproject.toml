@@ -17,13 +17,18 @@ dependencies = [
 package = false
 
 [dependency-groups]
+api = [
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "uvicorn>=0.53.0",
+]
 dev = [
     "pytest==9.1.1",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["ml"]
+pythonpath = ["ml", "api"]
 # fast suite by default; real-data tests need data/processed (run: uv run pytest -m realdata)
 addopts = "-m 'not realdata'"
 markers = ["realdata: needs data/processed built from the M5 files; not run in CI"]

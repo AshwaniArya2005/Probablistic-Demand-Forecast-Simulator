@@ -36,3 +36,9 @@ Thumbs.db
 
 # Tests
 .pytest_cache/
+
+# demo
+demo_private/
+node_modules/
+.playwright-mcp/
+dash-*.png

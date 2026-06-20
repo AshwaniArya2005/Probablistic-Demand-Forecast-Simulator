@@ -1,0 +1,3390 @@
+{
+ "data_version": "v1-2026-09-21",
+ "built": "2026-09-21",
+ "framing": "Every comparison leads with B3a, the post-hoc benchmark that keeps the same point forecast and takes its quantiles from empirical residuals: it is the fair benchmark. B2 is the pre-specified normal-sigma point policy (its constant-variance assumption failed the Phase 9 check for high-velocity series).",
+ "labels": {
+  "comparator-anchored": "the quantile policy's inventory interpolated at each comparator setting's own fill rate",
+  "quantile-anchored": "the comparator's inventory interpolated at the quantile policy's own fill rate (the pre-registered statistic)"
+ },
+ "caveats": [
+  "Intervals come from a bootstrap over items: they reflect which items were sampled, not variation between periods (one 26-week test period).",
+  "The matched-inventory reduction is a descriptive comparison of two rules at equal fill rate under real demand, not evidence of forecast skill: a shuffled-demand null gives a positive reduction with no information (see null tests).",
+  "Cost is unresolved: the other policies' cost minima sit at their 0.80 grid edge and cannot be extended.",
+  "Historical replay under stated assumptions; no real stock, lead-time or cost data exist. Sales are not demand."
+ ],
+ "scenarios": [
+  {
+   "id": "primary",
+   "title": "Base case (lead time 3)",
+   "blurb": "The primary test-window run, made once. Lead time 3 days, weekly review, lost sales, 25 review dates.",
+   "source": "docs/results/phase10_simulator_primary.md",
+   "curves": [
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.8",
+     "fill": 0.9327,
+     "cycle_service": 0.8888,
+     "inv": 10.89
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.9",
+     "fill": 0.9636,
+     "cycle_service": 0.9488,
+     "inv": 15.25
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.95",
+     "fill": 0.9797,
+     "cycle_service": 0.9777,
+     "inv": 21.3
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.99",
+     "fill": 0.9955,
+     "cycle_service": 0.9972,
+     "inv": 69.7
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.8",
+     "fill": 0.9764,
+     "cycle_service": 0.9593,
+     "inv": 24.46
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.9",
+     "fill": 0.986,
+     "cycle_service": 0.9796,
+     "inv": 34.16
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.95",
+     "fill": 0.9898,
+     "cycle_service": 0.9875,
+     "inv": 42.35
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.99",
+     "fill": 0.9934,
+     "cycle_service": 0.9933,
+     "inv": 58.03
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.8",
+     "fill": 0.9318,
+     "cycle_service": 0.8848,
+     "inv": 10.31
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.9",
+     "fill": 0.9611,
+     "cycle_service": 0.9405,
+     "inv": 13.53
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.95",
+     "fill": 0.9768,
+     "cycle_service": 0.9707,
+     "inv": 16.93
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.99",
+     "fill": 0.9958,
+     "cycle_service": 0.9971,
+     "inv": 37.68
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.00",
+     "fill": 0.8576,
+     "cycle_service": 0.7447,
+     "inv": 7.19
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.25",
+     "fill": 0.9195,
+     "cycle_service": 0.8547,
+     "inv": 10.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.50",
+     "fill": 0.9497,
+     "cycle_service": 0.9111,
+     "inv": 13.69
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.75",
+     "fill": 0.9652,
+     "cycle_service": 0.9412,
+     "inv": 17.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.00",
+     "fill": 0.9742,
+     "cycle_service": 0.9599,
+     "inv": 21.05
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.25",
+     "fill": 0.9804,
+     "cycle_service": 0.972,
+     "inv": 24.99
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.50",
+     "fill": 0.9842,
+     "cycle_service": 0.978,
+     "inv": 28.9
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.75",
+     "fill": 0.9865,
+     "cycle_service": 0.9813,
+     "inv": 32.81
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.00",
+     "fill": 0.9885,
+     "cycle_service": 0.9856,
+     "inv": 36.86
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.50",
+     "fill": 0.9905,
+     "cycle_service": 0.9899,
+     "inv": 44.9
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.00",
+     "fill": 0.9916,
+     "cycle_service": 0.9927,
+     "inv": 53.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.50",
+     "fill": 0.9924,
+     "cycle_service": 0.9939,
+     "inv": 61.52
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.00",
+     "fill": 0.993,
+     "cycle_service": 0.9939,
+     "inv": 69.96
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.50",
+     "fill": 0.9936,
+     "cycle_service": 0.9939,
+     "inv": 78.48
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.00",
+     "fill": 0.9942,
+     "cycle_service": 0.9941,
+     "inv": 87.05
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.50",
+     "fill": 0.9945,
+     "cycle_service": 0.9944,
+     "inv": 95.81
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.00",
+     "fill": 0.9946,
+     "cycle_service": 0.9944,
+     "inv": 104.36
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.50",
+     "fill": 0.9948,
+     "cycle_service": 0.9947,
+     "inv": 113.38
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.00",
+     "fill": 0.9949,
+     "cycle_service": 0.9949,
+     "inv": 122.23
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.50",
+     "fill": 0.9951,
+     "cycle_service": 0.9953,
+     "inv": 131.2
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.00",
+     "fill": 0.9951,
+     "cycle_service": 0.9953,
+     "inv": 140.1
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.50",
+     "fill": 0.9952,
+     "cycle_service": 0.9953,
+     "inv": 149.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 10.00",
+     "fill": 0.9952,
+     "cycle_service": 0.9953,
+     "inv": 158.17
+    }
+   ],
+   "comparison_comparator_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "4.5%",
+     "alpha 0.9": "7.7%",
+     "alpha 0.95": "5.6%",
+     "alpha 0.99": "46.3%",
+     "settings matched": "4 of 4",
+     "mean over matched": "16.0%",
+     "95% interval (items)": "[0.7%, 24.9%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "31.1%",
+     "alpha 0.9": "20.8%",
+     "alpha 0.95": "26.4%",
+     "alpha 0.99": "39.6%",
+     "settings matched": "4 of 4",
+     "mean over matched": "29.5%",
+     "95% interval (items)": "[21.9%, 35.9%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "-",
+     "alpha 0.9": "-",
+     "alpha 0.95": "-",
+     "alpha 0.99": "-",
+     "settings matched": "21 of 23",
+     "mean over matched": "45.3%",
+     "95% interval (items)": "[12.6%, 52.4%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "comparison_quantile_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "9.2%",
+     "alpha 0.95": "16.2%",
+     "alpha 0.99": "n/a",
+     "settings matched": "2 of 4",
+     "mean over matched": "12.7%",
+     "95% interval (items)": "[9.5%, 24.4%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "n/a",
+     "alpha 0.95": "31.8%",
+     "alpha 0.99": "n/a",
+     "settings matched": "1 of 4",
+     "mean over matched": "31.8%",
+     "95% interval (items)": "[28.0%, 41.9%]",
+     "resamples with a match": "58%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "11.7%",
+     "alpha 0.9": "17.2%",
+     "alpha 0.95": "25.4%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "18.1%",
+     "95% interval (items)": "[14.3%, 32.0%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "by_segment": {
+    "low": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "2.9%",
+      "alpha 0.9": "11.5%",
+      "alpha 0.95": "-0.7%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "4.6%",
+      "95% interval (items)": "[-2.8%, 15.6%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "5.0%",
+      "alpha 0.9": "8.2%",
+      "alpha 0.95": "11.3%",
+      "alpha 0.99": "5.8%",
+      "settings matched": "4 of 4",
+      "mean over matched": "7.6%",
+      "95% interval (items)": "[-1.0%, 12.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "20 of 23",
+      "mean over matched": "43.9%",
+      "95% interval (items)": "[12.1%, 50.9%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "mid": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "6.4%",
+      "alpha 0.9": "10.0%",
+      "alpha 0.95": "7.0%",
+      "alpha 0.99": "47.4%",
+      "settings matched": "4 of 4",
+      "mean over matched": "17.7%",
+      "95% interval (items)": "[1.1%, 27.2%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "13.2%",
+      "alpha 0.9": "14.9%",
+      "alpha 0.95": "2.3%",
+      "alpha 0.99": "11.9%",
+      "settings matched": "4 of 4",
+      "mean over matched": "10.6%",
+      "95% interval (items)": "[2.2%, 16.8%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "48.7%",
+      "95% interval (items)": "[19.3%, 58.0%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "high": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "4.9%",
+      "alpha 0.95": "6.6%",
+      "alpha 0.99": "48.5%",
+      "settings matched": "3 of 4",
+      "mean over matched": "20.0%",
+      "95% interval (items)": "[-3.1%, 26.2%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "6.8%",
+      "alpha 0.9": "19.1%",
+      "alpha 0.95": "31.0%",
+      "alpha 0.99": "47.0%",
+      "settings matched": "4 of 4",
+      "mean over matched": "26.0%",
+      "95% interval (items)": "[7.8%, 36.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "15 of 23",
+      "mean over matched": "32.8%",
+      "95% interval (items)": "[0.5%, 54.3%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "service_gap": [
+    {
+     "period": "all",
+     "policy": "B3a",
+     "alpha 0.8": "0.089",
+     "alpha 0.9": "0.049",
+     "alpha 0.95": "0.028",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "all",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.159",
+     "alpha 0.9": "0.08",
+     "alpha 0.95": "0.037",
+     "alpha 0.99": "0.003"
+    },
+    {
+     "period": "all",
+     "policy": "Quantile",
+     "alpha 0.8": "0.085",
+     "alpha 0.9": "0.041",
+     "alpha 0.95": "0.021",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "peak",
+     "policy": "B3a",
+     "alpha 0.8": "0.092",
+     "alpha 0.9": "0.047",
+     "alpha 0.95": "0.027",
+     "alpha 0.99": "0.006"
+    },
+    {
+     "period": "peak",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.152",
+     "alpha 0.9": "0.077",
+     "alpha 0.95": "0.033",
+     "alpha 0.99": "-0.001"
+    },
+    {
+     "period": "peak",
+     "policy": "Quantile",
+     "alpha 0.8": "0.082",
+     "alpha 0.9": "0.032",
+     "alpha 0.95": "0.017",
+     "alpha 0.99": "0.005"
+    },
+    {
+     "period": "rest",
+     "policy": "B3a",
+     "alpha 0.8": "0.088",
+     "alpha 0.9": "0.049",
+     "alpha 0.95": "0.028",
+     "alpha 0.99": "0.008"
+    },
+    {
+     "period": "rest",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.162",
+     "alpha 0.9": "0.081",
+     "alpha 0.95": "0.039",
+     "alpha 0.99": "0.005"
+    },
+    {
+     "period": "rest",
+     "policy": "Quantile",
+     "alpha 0.8": "0.086",
+     "alpha 0.9": "0.043",
+     "alpha 0.95": "0.022",
+     "alpha 0.99": "0.008"
+    }
+   ],
+   "cost": [
+    {
+     "policy": "B3a",
+     "rho 4 (critical ratio 0.80)": "1,281 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,555 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,069 at 0.9",
+     "rho 99 (critical ratio 0.99)": "3,819 at 0.95"
+    },
+    {
+     "policy": "B2 / B2-sqrt",
+     "rho 4 (critical ratio 0.80)": "2,293 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "2,413 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,652 at 0.8 (edge of its grid)",
+     "rho 99 (critical ratio 0.99)": "4,475 at 0.9"
+    },
+    {
+     "policy": "Quantile",
+     "rho 4 (critical ratio 0.80)": "1,213 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,503 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "1,931 at 0.9",
+     "rho 99 (critical ratio 0.99)": "3,617 at 0.95"
+    },
+    {
+     "policy": "Naive",
+     "rho 4 (critical ratio 0.80)": "1,174 at 1.0 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,604 at 1.25",
+     "rho 19 (critical ratio 0.95)": "2,146 at 1.5",
+     "rho 99 (critical ratio 0.99)": "4,223 at 2.25"
+    }
+   ],
+   "sigma_forms": [
+    {
+     "segment": "low",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "1",
+     "B2-sqrt": "4",
+     "model versions": "5"
+    },
+    {
+     "segment": "mid",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "4",
+     "B2-sqrt": "1",
+     "model versions": "5"
+    },
+    {
+     "segment": "high",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "5",
+     "B2-sqrt": "0",
+     "model versions": "5"
+    }
+   ],
+   "by_period": {
+    "peak": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "0.0%",
+      "alpha 0.9": "6.7%",
+      "alpha 0.95": "7.6%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "4.8%",
+      "95% interval (items)": "[-7.2%, 20.5%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "23.4%",
+      "alpha 0.9": "15.1%",
+      "alpha 0.95": "19.0%",
+      "alpha 0.99": "28.2%",
+      "settings matched": "4 of 4",
+      "mean over matched": "21.4%",
+      "95% interval (items)": "[2.0%, 32.5%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "10 of 23",
+      "mean over matched": "25.3%",
+      "95% interval (items)": "[0.1%, 54.5%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "rest": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "8.4%",
+      "alpha 0.95": "5.2%",
+      "alpha 0.99": "48.2%",
+      "settings matched": "3 of 4",
+      "mean over matched": "20.6%",
+      "95% interval (items)": "[9.0%, 26.3%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "32.5%",
+      "alpha 0.9": "21.8%",
+      "alpha 0.95": "27.9%",
+      "alpha 0.99": "42.5%",
+      "settings matched": "4 of 4",
+      "mean over matched": "31.2%",
+      "95% interval (items)": "[23.4%, 38.2%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "45.9%",
+      "95% interval (items)": "[39.7%, 54.1%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "predictions": [
+    "Quantile policy: rest below target at every alpha and by more than in the peak: **NOT CONFIRMED**. Point policy (relative claim only): the rest gap is smaller than the peak gap at 0 of 4 alphas.",
+    "Cycle service at 0.99 in the peak: 0.9950 (prediction: at or above 0.99). Verdict: **CONFIRMED** (marginal cost larger: yes; peak service at or above 0.99: yes).",
+    "Verdict on the comparator-anchored statistic, pooled and in the high and mid segments: **NOT CONFIRMED**."
+   ]
+  },
+  {
+   "id": "L7",
+   "title": "Lead time 7",
+   "blurb": "Sensitivity: lead time 7 days (protection interval 14 days).",
+   "source": "docs/results/phase10_sens_L7.md",
+   "curves": [
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.8",
+     "fill": 0.9234,
+     "cycle_service": 0.8891,
+     "inv": 13.89
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.9",
+     "fill": 0.9597,
+     "cycle_service": 0.9507,
+     "inv": 19.74
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.95",
+     "fill": 0.9781,
+     "cycle_service": 0.982,
+     "inv": 29.19
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.99",
+     "fill": 0.9944,
+     "cycle_service": 0.9972,
+     "inv": 130.13
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.8",
+     "fill": 0.9761,
+     "cycle_service": 0.9636,
+     "inv": 37.31
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.9",
+     "fill": 0.9855,
+     "cycle_service": 0.9836,
+     "inv": 53.74
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.95",
+     "fill": 0.9884,
+     "cycle_service": 0.9897,
+     "inv": 67.75
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.99",
+     "fill": 0.9916,
+     "cycle_service": 0.9932,
+     "inv": 94.79
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.8",
+     "fill": 0.9201,
+     "cycle_service": 0.8807,
+     "inv": 12.9
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.9",
+     "fill": 0.9536,
+     "cycle_service": 0.9373,
+     "inv": 16.89
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.95",
+     "fill": 0.9737,
+     "cycle_service": 0.968,
+     "inv": 21.36
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.99",
+     "fill": 0.9944,
+     "cycle_service": 0.9973,
+     "inv": 50.16
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.00",
+     "fill": 0.826,
+     "cycle_service": 0.7193,
+     "inv": 8.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.25",
+     "fill": 0.9073,
+     "cycle_service": 0.8496,
+     "inv": 12.6
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.50",
+     "fill": 0.9457,
+     "cycle_service": 0.912,
+     "inv": 17.55
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.75",
+     "fill": 0.9641,
+     "cycle_service": 0.9467,
+     "inv": 22.83
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.00",
+     "fill": 0.9726,
+     "cycle_service": 0.9604,
+     "inv": 27.99
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.25",
+     "fill": 0.9798,
+     "cycle_service": 0.9759,
+     "inv": 33.93
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.50",
+     "fill": 0.9829,
+     "cycle_service": 0.9816,
+     "inv": 39.52
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.75",
+     "fill": 0.9851,
+     "cycle_service": 0.9855,
+     "inv": 45.33
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.00",
+     "fill": 0.9864,
+     "cycle_service": 0.9877,
+     "inv": 50.97
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.50",
+     "fill": 0.9881,
+     "cycle_service": 0.9904,
+     "inv": 62.73
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.00",
+     "fill": 0.9893,
+     "cycle_service": 0.9919,
+     "inv": 74.37
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.50",
+     "fill": 0.99,
+     "cycle_service": 0.9929,
+     "inv": 86.83
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.00",
+     "fill": 0.9902,
+     "cycle_service": 0.9931,
+     "inv": 98.95
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.50",
+     "fill": 0.9904,
+     "cycle_service": 0.9933,
+     "inv": 111.44
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.00",
+     "fill": 0.9906,
+     "cycle_service": 0.9936,
+     "inv": 123.64
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.50",
+     "fill": 0.9907,
+     "cycle_service": 0.9936,
+     "inv": 136.4
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.00",
+     "fill": 0.9908,
+     "cycle_service": 0.9937,
+     "inv": 148.91
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.50",
+     "fill": 0.9911,
+     "cycle_service": 0.9937,
+     "inv": 161.82
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.00",
+     "fill": 0.9912,
+     "cycle_service": 0.9939,
+     "inv": 174.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.50",
+     "fill": 0.9914,
+     "cycle_service": 0.9943,
+     "inv": 187.45
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.00",
+     "fill": 0.9915,
+     "cycle_service": 0.9944,
+     "inv": 200.39
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.50",
+     "fill": 0.9916,
+     "cycle_service": 0.9944,
+     "inv": 213.56
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 10.00",
+     "fill": 0.9917,
+     "cycle_service": 0.9944,
+     "inv": 226.44
+    }
+   ],
+   "comparison_comparator_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "4.3%",
+     "alpha 0.9": "7.6%",
+     "alpha 0.95": "5.6%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "5.8%",
+     "95% interval (items)": "[0.6%, 28.3%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "33.7%",
+     "alpha 0.9": "29.6%",
+     "alpha 0.95": "38.3%",
+     "alpha 0.99": "51.2%",
+     "settings matched": "4 of 4",
+     "mean over matched": "38.2%",
+     "95% interval (items)": "[27.5%, 45.7%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "-",
+     "alpha 0.9": "-",
+     "alpha 0.95": "-",
+     "alpha 0.99": "-",
+     "settings matched": "21 of 23",
+     "mean over matched": "48.3%",
+     "95% interval (items)": "[12.2%, 55.8%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "comparison_quantile_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "9.9%",
+     "alpha 0.95": "20.6%",
+     "alpha 0.99": "61.4%",
+     "settings matched": "3 of 4",
+     "mean over matched": "30.7%",
+     "95% interval (items)": "[12.5%, 31.1%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "n/a",
+     "alpha 0.95": "n/a",
+     "alpha 0.99": "n/a",
+     "settings matched": "0 of 4",
+     "mean over matched": "n/a",
+     "95% interval (items)": "[35.0%, 49.3%]",
+     "resamples with a match": "21%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "9.5%",
+     "alpha 0.9": "14.8%",
+     "alpha 0.95": "26.1%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "16.8%",
+     "95% interval (items)": "[11.5%, 28.2%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "by_segment": {
+    "low": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "5.1%",
+      "alpha 0.9": "8.6%",
+      "alpha 0.95": "-12.7%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "0.3%",
+      "95% interval (items)": "[-5.0%, 9.8%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "5.8%",
+      "alpha 0.9": "10.0%",
+      "alpha 0.95": "13.6%",
+      "alpha 0.99": "6.7%",
+      "settings matched": "4 of 4",
+      "mean over matched": "9.0%",
+      "95% interval (items)": "[0.3%, 14.3%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "41.9%",
+      "95% interval (items)": "[2.4%, 53.7%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "mid": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "9.4%",
+      "alpha 0.9": "11.0%",
+      "alpha 0.95": "-3.4%",
+      "alpha 0.99": "54.0%",
+      "settings matched": "4 of 4",
+      "mean over matched": "17.8%",
+      "95% interval (items)": "[-1.3%, 26.9%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "14.9%",
+      "alpha 0.9": "-1.5%",
+      "alpha 0.95": "7.2%",
+      "alpha 0.99": "25.2%",
+      "settings matched": "4 of 4",
+      "mean over matched": "11.4%",
+      "95% interval (items)": "[1.3%, 21.5%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "50.8%",
+      "95% interval (items)": "[9.6%, 61.1%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "high": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "1.8%",
+      "alpha 0.9": "4.9%",
+      "alpha 0.95": "14.9%",
+      "alpha 0.99": "66.0%",
+      "settings matched": "4 of 4",
+      "mean over matched": "21.9%",
+      "95% interval (items)": "[0.6%, 32.5%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "18.1%",
+      "alpha 0.9": "31.7%",
+      "alpha 0.95": "43.7%",
+      "alpha 0.99": "57.7%",
+      "settings matched": "4 of 4",
+      "mean over matched": "37.8%",
+      "95% interval (items)": "[15.7%, 46.6%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "48.0%",
+      "95% interval (items)": "[2.4%, 58.3%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "service_gap": [
+    {
+     "period": "all",
+     "policy": "B3a",
+     "alpha 0.8": "0.089",
+     "alpha 0.9": "0.051",
+     "alpha 0.95": "0.032",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "all",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.164",
+     "alpha 0.9": "0.084",
+     "alpha 0.95": "0.04",
+     "alpha 0.99": "0.003"
+    },
+    {
+     "period": "all",
+     "policy": "Quantile",
+     "alpha 0.8": "0.081",
+     "alpha 0.9": "0.037",
+     "alpha 0.95": "0.018",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "peak",
+     "policy": "B3a",
+     "alpha 0.8": "0.103",
+     "alpha 0.9": "0.053",
+     "alpha 0.95": "0.028",
+     "alpha 0.99": "0.006"
+    },
+    {
+     "period": "peak",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.156",
+     "alpha 0.9": "0.076",
+     "alpha 0.95": "0.033",
+     "alpha 0.99": "-0.001"
+    },
+    {
+     "period": "peak",
+     "policy": "Quantile",
+     "alpha 0.8": "0.082",
+     "alpha 0.9": "0.041",
+     "alpha 0.95": "0.014",
+     "alpha 0.99": "0.006"
+    },
+    {
+     "period": "rest",
+     "policy": "B3a",
+     "alpha 0.8": "0.086",
+     "alpha 0.9": "0.05",
+     "alpha 0.95": "0.033",
+     "alpha 0.99": "0.008"
+    },
+    {
+     "period": "rest",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.165",
+     "alpha 0.9": "0.086",
+     "alpha 0.95": "0.042",
+     "alpha 0.99": "0.004"
+    },
+    {
+     "period": "rest",
+     "policy": "Quantile",
+     "alpha 0.8": "0.08",
+     "alpha 0.9": "0.036",
+     "alpha 0.95": "0.019",
+     "alpha 0.99": "0.008"
+    }
+   ],
+   "cost": [
+    {
+     "policy": "B3a",
+     "rho 4 (critical ratio 0.80)": "1,630 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,954 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,603 at 0.8 (edge of its grid)",
+     "rho 99 (critical ratio 0.99)": "4,813 at 0.95"
+    },
+    {
+     "policy": "B2 / B2-sqrt",
+     "rho 4 (critical ratio 0.80)": "3,420 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "3,543 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "3,789 at 0.8 (edge of its grid)",
+     "rho 99 (critical ratio 0.99)": "5,758 at 0.8 (edge of its grid)"
+    },
+    {
+     "policy": "Quantile",
+     "rho 4 (critical ratio 0.80)": "1,526 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,879 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,415 at 0.9",
+     "rho 99 (critical ratio 0.99)": "4,488 at 0.95"
+    },
+    {
+     "policy": "Naive",
+     "rho 4 (critical ratio 0.80)": "1,397 at 1.0 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,934 at 1.25",
+     "rho 19 (critical ratio 0.95)": "2,609 at 1.5",
+     "rho 99 (critical ratio 0.99)": "5,096 at 2.25"
+    }
+   ],
+   "sigma_forms": [
+    {
+     "segment": "low",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "1",
+     "B2-sqrt": "4",
+     "model versions": "5"
+    },
+    {
+     "segment": "mid",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "5",
+     "B2-sqrt": "0",
+     "model versions": "5"
+    },
+    {
+     "segment": "high",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "5",
+     "B2-sqrt": "0",
+     "model versions": "5"
+    }
+   ],
+   "by_period": {
+    "peak": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "4.3%",
+      "alpha 0.9": "8.6%",
+      "alpha 0.95": "8.1%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "7.0%",
+      "95% interval (items)": "[-8.7%, 27.6%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "34.8%",
+      "alpha 0.9": "26.0%",
+      "alpha 0.95": "29.6%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "30.1%",
+      "95% interval (items)": "[6.0%, 53.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "13 of 23",
+      "mean over matched": "35.2%",
+      "95% interval (items)": "[-3.1%, 67.7%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "rest": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "4.4%",
+      "alpha 0.9": "7.4%",
+      "alpha 0.95": "4.9%",
+      "alpha 0.99": "63.2%",
+      "settings matched": "4 of 4",
+      "mean over matched": "20.0%",
+      "95% interval (items)": "[3.9%, 31.2%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "32.3%",
+      "alpha 0.9": "30.0%",
+      "alpha 0.95": "40.0%",
+      "alpha 0.99": "53.8%",
+      "settings matched": "4 of 4",
+      "mean over matched": "39.0%",
+      "95% interval (items)": "[32.1%, 45.9%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "48.2%",
+      "95% interval (items)": "[41.9%, 55.1%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "expected_outcomes": [
+    {
+     "held": true,
+     "text": "quantile policy: cycle service above target at every alpha"
+    },
+    {
+     "held": false,
+     "text": "comparator-anchored mean reduction against B3a is positive and within 8 percentage points of the base case"
+    },
+    {
+     "held": true,
+     "text": "B2 still over-protects: its cycle service exceeds target by more than 0.05 at alpha 0.80"
+    },
+    {
+     "held": true,
+     "text": "quantile policy holds more inventory than in the base case at every alpha"
+    }
+   ]
+  },
+  {
+   "id": "randlead",
+   "title": "Random lead time",
+   "blurb": "Sensitivity: each order's lead time Uniform{2, 3, 4}, ten draws pooled; policies plan with 3.",
+   "source": "docs/results/phase10_sens_randlead.md",
+   "curves": [
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.8",
+     "fill": 0.9306,
+     "cycle_service": 0.8712,
+     "inv": 10.89
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.9",
+     "fill": 0.9627,
+     "cycle_service": 0.9404,
+     "inv": 15.25
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.95",
+     "fill": 0.9794,
+     "cycle_service": 0.9741,
+     "inv": 21.29
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.99",
+     "fill": 0.9955,
+     "cycle_service": 0.9968,
+     "inv": 69.72
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.8",
+     "fill": 0.976,
+     "cycle_service": 0.9535,
+     "inv": 24.46
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.9",
+     "fill": 0.9858,
+     "cycle_service": 0.9764,
+     "inv": 34.16
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.95",
+     "fill": 0.9897,
+     "cycle_service": 0.9857,
+     "inv": 42.35
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.99",
+     "fill": 0.9932,
+     "cycle_service": 0.9922,
+     "inv": 58.04
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.8",
+     "fill": 0.9295,
+     "cycle_service": 0.8662,
+     "inv": 10.31
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.9",
+     "fill": 0.9599,
+     "cycle_service": 0.9315,
+     "inv": 13.52
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.95",
+     "fill": 0.9759,
+     "cycle_service": 0.9642,
+     "inv": 16.92
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.99",
+     "fill": 0.9958,
+     "cycle_service": 0.9965,
+     "inv": 37.68
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.00",
+     "fill": 0.8539,
+     "cycle_service": 0.7162,
+     "inv": 7.19
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.25",
+     "fill": 0.9172,
+     "cycle_service": 0.835,
+     "inv": 10.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.50",
+     "fill": 0.9482,
+     "cycle_service": 0.8994,
+     "inv": 13.69
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.75",
+     "fill": 0.9643,
+     "cycle_service": 0.9331,
+     "inv": 17.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.00",
+     "fill": 0.9738,
+     "cycle_service": 0.9548,
+     "inv": 21.05
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.25",
+     "fill": 0.9802,
+     "cycle_service": 0.9685,
+     "inv": 24.98
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.50",
+     "fill": 0.9842,
+     "cycle_service": 0.9752,
+     "inv": 28.89
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.75",
+     "fill": 0.9865,
+     "cycle_service": 0.9794,
+     "inv": 32.8
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.00",
+     "fill": 0.9885,
+     "cycle_service": 0.9844,
+     "inv": 36.85
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.50",
+     "fill": 0.9905,
+     "cycle_service": 0.989,
+     "inv": 44.89
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.00",
+     "fill": 0.9916,
+     "cycle_service": 0.9918,
+     "inv": 53.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.50",
+     "fill": 0.9924,
+     "cycle_service": 0.993,
+     "inv": 61.52
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.00",
+     "fill": 0.993,
+     "cycle_service": 0.9932,
+     "inv": 69.96
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.50",
+     "fill": 0.9935,
+     "cycle_service": 0.9933,
+     "inv": 78.48
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.00",
+     "fill": 0.9941,
+     "cycle_service": 0.9934,
+     "inv": 87.06
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.50",
+     "fill": 0.9944,
+     "cycle_service": 0.9938,
+     "inv": 95.81
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.00",
+     "fill": 0.9945,
+     "cycle_service": 0.9939,
+     "inv": 104.37
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.50",
+     "fill": 0.9947,
+     "cycle_service": 0.9941,
+     "inv": 113.39
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.00",
+     "fill": 0.9948,
+     "cycle_service": 0.9942,
+     "inv": 122.23
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.50",
+     "fill": 0.995,
+     "cycle_service": 0.9946,
+     "inv": 131.21
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.00",
+     "fill": 0.995,
+     "cycle_service": 0.9947,
+     "inv": 140.11
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.50",
+     "fill": 0.9951,
+     "cycle_service": 0.9947,
+     "inv": 149.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 10.00",
+     "fill": 0.9951,
+     "cycle_service": 0.9949,
+     "inv": 158.18
+    }
+   ],
+   "comparison_comparator_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "4.1%",
+     "alpha 0.9": "7.4%",
+     "alpha 0.95": "3.5%",
+     "alpha 0.99": "46.4%",
+     "settings matched": "4 of 4",
+     "mean over matched": "15.4%",
+     "95% interval (items)": "[0.5%, 23.7%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "30.3%",
+     "alpha 0.9": "20.1%",
+     "alpha 0.95": "26.1%",
+     "alpha 0.99": "39.6%",
+     "settings matched": "4 of 4",
+     "mean over matched": "29.0%",
+     "95% interval (items)": "[21.2%, 35.2%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "-",
+     "alpha 0.9": "-",
+     "alpha 0.95": "-",
+     "alpha 0.99": "-",
+     "settings matched": "21 of 23",
+     "mean over matched": "44.9%",
+     "95% interval (items)": "[12.7%, 51.6%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "comparison_quantile_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "9.1%",
+     "alpha 0.95": "15.5%",
+     "alpha 0.99": "n/a",
+     "settings matched": "2 of 4",
+     "mean over matched": "12.3%",
+     "95% interval (items)": "[9.2%, 23.8%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "n/a",
+     "alpha 0.95": "n/a",
+     "alpha 0.99": "n/a",
+     "settings matched": "0 of 4",
+     "mean over matched": "n/a",
+     "95% interval (items)": "[27.6%, 40.9%]",
+     "resamples with a match": "50%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "11.3%",
+     "alpha 0.9": "17.0%",
+     "alpha 0.95": "24.2%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "17.5%",
+     "95% interval (items)": "[14.3%, 31.3%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "by_segment": {
+    "low": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "2.9%",
+      "alpha 0.9": "11.0%",
+      "alpha 0.95": "-0.4%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "4.5%",
+      "95% interval (items)": "[-2.1%, 13.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "5.2%",
+      "alpha 0.9": "8.7%",
+      "alpha 0.95": "11.7%",
+      "alpha 0.99": "5.7%",
+      "settings matched": "4 of 4",
+      "mean over matched": "7.8%",
+      "95% interval (items)": "[-0.8%, 13.1%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "20 of 23",
+      "mean over matched": "43.7%",
+      "95% interval (items)": "[11.3%, 50.2%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "mid": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "5.6%",
+      "alpha 0.9": "9.8%",
+      "alpha 0.95": "4.2%",
+      "alpha 0.99": "47.4%",
+      "settings matched": "4 of 4",
+      "mean over matched": "16.8%",
+      "95% interval (items)": "[-0.0%, 25.9%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "13.1%",
+      "alpha 0.9": "12.2%",
+      "alpha 0.95": "0.2%",
+      "alpha 0.99": "11.3%",
+      "settings matched": "4 of 4",
+      "mean over matched": "9.2%",
+      "95% interval (items)": "[1.2%, 15.2%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "48.0%",
+      "95% interval (items)": "[18.4%, 56.6%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "high": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "4.8%",
+      "alpha 0.95": "4.1%",
+      "alpha 0.99": "48.7%",
+      "settings matched": "3 of 4",
+      "mean over matched": "19.2%",
+      "95% interval (items)": "[-3.0%, 25.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "4.8%",
+      "alpha 0.9": "18.2%",
+      "alpha 0.95": "30.9%",
+      "alpha 0.99": "47.1%",
+      "settings matched": "4 of 4",
+      "mean over matched": "25.3%",
+      "95% interval (items)": "[7.7%, 35.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "17 of 23",
+      "mean over matched": "36.5%",
+      "95% interval (items)": "[1.0%, 53.4%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "service_gap": [
+    {
+     "period": "all",
+     "policy": "B3a",
+     "alpha 0.8": "0.071",
+     "alpha 0.9": "0.04",
+     "alpha 0.95": "0.024",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "all",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.153",
+     "alpha 0.9": "0.076",
+     "alpha 0.95": "0.036",
+     "alpha 0.99": "0.002"
+    },
+    {
+     "period": "all",
+     "policy": "Quantile",
+     "alpha 0.8": "0.066",
+     "alpha 0.9": "0.031",
+     "alpha 0.95": "0.014",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "peak",
+     "policy": "B3a",
+     "alpha 0.8": "0.079",
+     "alpha 0.9": "0.039",
+     "alpha 0.95": "0.023",
+     "alpha 0.99": "0.006"
+    },
+    {
+     "period": "peak",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.145",
+     "alpha 0.9": "0.073",
+     "alpha 0.95": "0.032",
+     "alpha 0.99": "-0.001"
+    },
+    {
+     "period": "peak",
+     "policy": "Quantile",
+     "alpha 0.8": "0.064",
+     "alpha 0.9": "0.023",
+     "alpha 0.95": "0.011",
+     "alpha 0.99": "0.005"
+    },
+    {
+     "period": "rest",
+     "policy": "B3a",
+     "alpha 0.8": "0.069",
+     "alpha 0.9": "0.041",
+     "alpha 0.95": "0.024",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "rest",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.156",
+     "alpha 0.9": "0.077",
+     "alpha 0.95": "0.037",
+     "alpha 0.99": "0.003"
+    },
+    {
+     "period": "rest",
+     "policy": "Quantile",
+     "alpha 0.8": "0.067",
+     "alpha 0.9": "0.034",
+     "alpha 0.95": "0.015",
+     "alpha 0.99": "0.007"
+    }
+   ],
+   "cost": [
+    {
+     "policy": "B3a",
+     "rho 4 (critical ratio 0.80)": "12,898 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "15,755 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "20,907 at 0.9",
+     "rho 99 (critical ratio 0.99)": "38,578 at 0.95"
+    },
+    {
+     "policy": "B2 / B2-sqrt",
+     "rho 4 (critical ratio 0.80)": "22,955 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "24,180 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "26,631 at 0.8 (edge of its grid)",
+     "rho 99 (critical ratio 0.99)": "45,175 at 0.9"
+    },
+    {
+     "policy": "Quantile",
+     "rho 4 (critical ratio 0.80)": "12,235 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "15,280 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "19,629 at 0.9",
+     "rho 99 (critical ratio 0.99)": "37,429 at 0.95"
+    },
+    {
+     "policy": "Naive",
+     "rho 4 (critical ratio 0.80)": "11,907 at 1.0 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "16,236 at 1.25",
+     "rho 19 (critical ratio 0.95)": "21,738 at 1.5",
+     "rho 99 (critical ratio 0.99)": "42,333 at 2.25"
+    }
+   ],
+   "sigma_forms": [
+    {
+     "segment": "low",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "1",
+     "B2-sqrt": "4",
+     "model versions": "5"
+    },
+    {
+     "segment": "mid",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "4",
+     "B2-sqrt": "1",
+     "model versions": "5"
+    },
+    {
+     "segment": "high",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "5",
+     "B2-sqrt": "0",
+     "model versions": "5"
+    }
+   ],
+   "by_period": {
+    "peak": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "0.0%",
+      "alpha 0.9": "5.6%",
+      "alpha 0.95": "2.9%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "2.8%",
+      "95% interval (items)": "[-8.4%, 19.6%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "22.2%",
+      "alpha 0.9": "12.2%",
+      "alpha 0.95": "17.3%",
+      "alpha 0.99": "28.5%",
+      "settings matched": "4 of 4",
+      "mean over matched": "20.1%",
+      "95% interval (items)": "[0.1%, 30.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "10 of 23",
+      "mean over matched": "23.4%",
+      "95% interval (items)": "[-1.6%, 54.0%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "rest": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "8.5%",
+      "alpha 0.95": "4.1%",
+      "alpha 0.99": "48.2%",
+      "settings matched": "3 of 4",
+      "mean over matched": "20.3%",
+      "95% interval (items)": "[9.7%, 25.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "31.6%",
+      "alpha 0.9": "21.8%",
+      "alpha 0.95": "28.0%",
+      "alpha 0.99": "42.5%",
+      "settings matched": "4 of 4",
+      "mean over matched": "31.0%",
+      "95% interval (items)": "[23.4%, 37.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "45.6%",
+      "95% interval (items)": "[39.8%, 53.1%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "expected_outcomes": [
+    {
+     "held": true,
+     "text": "quantile policy: cycle service below the base case at every alpha"
+    },
+    {
+     "held": false,
+     "text": "quantile policy: fill rate below the base case at every alpha"
+    },
+    {
+     "held": true,
+     "text": "comparator-anchored mean reduction against B3a is positive"
+    }
+   ]
+  },
+  {
+   "id": "nofp",
+   "title": "No future-price inputs",
+   "blurb": "Sensitivity: models refit without the planned-window price features.",
+   "source": "docs/results/phase10_sens_nofp.md",
+   "curves": [
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.8",
+     "fill": 0.9322,
+     "cycle_service": 0.8889,
+     "inv": 10.93
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.9",
+     "fill": 0.9638,
+     "cycle_service": 0.9493,
+     "inv": 15.35
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.95",
+     "fill": 0.9791,
+     "cycle_service": 0.9773,
+     "inv": 21.26
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.99",
+     "fill": 0.9956,
+     "cycle_service": 0.9971,
+     "inv": 74.76
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.8",
+     "fill": 0.9763,
+     "cycle_service": 0.9591,
+     "inv": 24.68
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.9",
+     "fill": 0.9859,
+     "cycle_service": 0.9789,
+     "inv": 34.43
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.95",
+     "fill": 0.9897,
+     "cycle_service": 0.9869,
+     "inv": 42.67
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.99",
+     "fill": 0.9933,
+     "cycle_service": 0.9932,
+     "inv": 58.43
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.8",
+     "fill": 0.9327,
+     "cycle_service": 0.8844,
+     "inv": 10.38
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.9",
+     "fill": 0.9615,
+     "cycle_service": 0.9411,
+     "inv": 13.52
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.95",
+     "fill": 0.9766,
+     "cycle_service": 0.9704,
+     "inv": 16.89
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.99",
+     "fill": 0.996,
+     "cycle_service": 0.9975,
+     "inv": 37.71
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.00",
+     "fill": 0.8576,
+     "cycle_service": 0.7447,
+     "inv": 7.19
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.25",
+     "fill": 0.9195,
+     "cycle_service": 0.8547,
+     "inv": 10.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.50",
+     "fill": 0.9497,
+     "cycle_service": 0.9111,
+     "inv": 13.69
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.75",
+     "fill": 0.9652,
+     "cycle_service": 0.9412,
+     "inv": 17.28
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.00",
+     "fill": 0.9742,
+     "cycle_service": 0.9599,
+     "inv": 21.05
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.25",
+     "fill": 0.9804,
+     "cycle_service": 0.972,
+     "inv": 24.99
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.50",
+     "fill": 0.9842,
+     "cycle_service": 0.978,
+     "inv": 28.9
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.75",
+     "fill": 0.9865,
+     "cycle_service": 0.9813,
+     "inv": 32.81
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.00",
+     "fill": 0.9885,
+     "cycle_service": 0.9856,
+     "inv": 36.86
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.50",
+     "fill": 0.9905,
+     "cycle_service": 0.9899,
+     "inv": 44.9
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.00",
+     "fill": 0.9916,
+     "cycle_service": 0.9927,
+     "inv": 53.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.50",
+     "fill": 0.9924,
+     "cycle_service": 0.9939,
+     "inv": 61.52
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.00",
+     "fill": 0.993,
+     "cycle_service": 0.9939,
+     "inv": 69.96
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.50",
+     "fill": 0.9936,
+     "cycle_service": 0.9939,
+     "inv": 78.48
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.00",
+     "fill": 0.9942,
+     "cycle_service": 0.9941,
+     "inv": 87.05
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.50",
+     "fill": 0.9945,
+     "cycle_service": 0.9944,
+     "inv": 95.81
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.00",
+     "fill": 0.9946,
+     "cycle_service": 0.9944,
+     "inv": 104.36
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.50",
+     "fill": 0.9948,
+     "cycle_service": 0.9947,
+     "inv": 113.38
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.00",
+     "fill": 0.9949,
+     "cycle_service": 0.9949,
+     "inv": 122.23
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.50",
+     "fill": 0.9951,
+     "cycle_service": 0.9953,
+     "inv": 131.2
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.00",
+     "fill": 0.9951,
+     "cycle_service": 0.9953,
+     "inv": 140.1
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.50",
+     "fill": 0.9952,
+     "cycle_service": 0.9953,
+     "inv": 149.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 10.00",
+     "fill": 0.9952,
+     "cycle_service": 0.9953,
+     "inv": 158.17
+    }
+   ],
+   "comparison_comparator_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "8.6%",
+     "alpha 0.95": "7.6%",
+     "alpha 0.99": "50.1%",
+     "settings matched": "3 of 4",
+     "mean over matched": "22.1%",
+     "95% interval (items)": "[1.9%, 27.1%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "31.8%",
+     "alpha 0.9": "22.0%",
+     "alpha 0.95": "27.5%",
+     "alpha 0.99": "40.3%",
+     "settings matched": "4 of 4",
+     "mean over matched": "30.4%",
+     "95% interval (items)": "[22.9%, 36.6%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "-",
+     "alpha 0.9": "-",
+     "alpha 0.95": "-",
+     "alpha 0.99": "-",
+     "settings matched": "21 of 23",
+     "mean over matched": "45.5%",
+     "95% interval (items)": "[13.2%, 52.6%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "comparison_quantile_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "5.7%",
+     "alpha 0.9": "10.0%",
+     "alpha 0.95": "16.7%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "10.8%",
+     "95% interval (items)": "[9.5%, 25.2%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "n/a",
+     "alpha 0.95": "32.4%",
+     "alpha 0.99": "n/a",
+     "settings matched": "1 of 4",
+     "mean over matched": "32.4%",
+     "95% interval (items)": "[29.0%, 42.7%]",
+     "resamples with a match": "57%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "11.9%",
+     "alpha 0.9": "17.6%",
+     "alpha 0.95": "25.1%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "18.2%",
+     "95% interval (items)": "[14.6%, 32.0%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "by_segment": {
+    "low": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "4.1%",
+      "alpha 0.9": "12.0%",
+      "alpha 0.95": "3.2%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "6.4%",
+      "95% interval (items)": "[0.1%, 18.1%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "6.3%",
+      "alpha 0.9": "10.2%",
+      "alpha 0.95": "12.6%",
+      "alpha 0.99": "8.0%",
+      "settings matched": "4 of 4",
+      "mean over matched": "9.3%",
+      "95% interval (items)": "[0.9%, 14.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "20 of 23",
+      "mean over matched": "44.0%",
+      "95% interval (items)": "[13.0%, 51.5%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "mid": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "12.8%",
+      "alpha 0.95": "11.3%",
+      "alpha 0.99": "48.6%",
+      "settings matched": "3 of 4",
+      "mean over matched": "24.2%",
+      "95% interval (items)": "[2.7%, 31.0%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "16.9%",
+      "alpha 0.9": "19.4%",
+      "alpha 0.95": "5.4%",
+      "alpha 0.99": "12.6%",
+      "settings matched": "4 of 4",
+      "mean over matched": "13.6%",
+      "95% interval (items)": "[4.1%, 21.0%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "48.8%",
+      "95% interval (items)": "[18.4%, 58.4%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "high": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "5.4%",
+      "alpha 0.95": "6.8%",
+      "alpha 0.99": "53.3%",
+      "settings matched": "3 of 4",
+      "mean over matched": "21.8%",
+      "95% interval (items)": "[-2.6%, 27.5%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "7.3%",
+      "alpha 0.9": "19.7%",
+      "alpha 0.95": "32.0%",
+      "alpha 0.99": "47.7%",
+      "settings matched": "4 of 4",
+      "mean over matched": "26.7%",
+      "95% interval (items)": "[9.6%, 36.9%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "19 of 23",
+      "mean over matched": "40.9%",
+      "95% interval (items)": "[0.8%, 54.5%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "service_gap": [
+    {
+     "period": "all",
+     "policy": "B3a",
+     "alpha 0.8": "0.089",
+     "alpha 0.9": "0.049",
+     "alpha 0.95": "0.027",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "all",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.159",
+     "alpha 0.9": "0.079",
+     "alpha 0.95": "0.037",
+     "alpha 0.99": "0.003"
+    },
+    {
+     "period": "all",
+     "policy": "Quantile",
+     "alpha 0.8": "0.084",
+     "alpha 0.9": "0.041",
+     "alpha 0.95": "0.02",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "peak",
+     "policy": "B3a",
+     "alpha 0.8": "0.092",
+     "alpha 0.9": "0.048",
+     "alpha 0.95": "0.026",
+     "alpha 0.99": "0.006"
+    },
+    {
+     "period": "peak",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.151",
+     "alpha 0.9": "0.075",
+     "alpha 0.95": "0.032",
+     "alpha 0.99": "-0.001"
+    },
+    {
+     "period": "peak",
+     "policy": "Quantile",
+     "alpha 0.8": "0.081",
+     "alpha 0.9": "0.032",
+     "alpha 0.95": "0.016",
+     "alpha 0.99": "0.005"
+    },
+    {
+     "period": "rest",
+     "policy": "B3a",
+     "alpha 0.8": "0.088",
+     "alpha 0.9": "0.05",
+     "alpha 0.95": "0.028",
+     "alpha 0.99": "0.008"
+    },
+    {
+     "period": "rest",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.162",
+     "alpha 0.9": "0.08",
+     "alpha 0.95": "0.038",
+     "alpha 0.99": "0.004"
+    },
+    {
+     "period": "rest",
+     "policy": "Quantile",
+     "alpha 0.8": "0.086",
+     "alpha 0.9": "0.044",
+     "alpha 0.95": "0.022",
+     "alpha 0.99": "0.008"
+    }
+   ],
+   "cost": [
+    {
+     "policy": "B3a",
+     "rho 4 (critical ratio 0.80)": "1,289 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,566 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,081 at 0.9",
+     "rho 99 (critical ratio 0.99)": "3,866 at 0.95"
+    },
+    {
+     "policy": "B2 / B2-sqrt",
+     "rho 4 (critical ratio 0.80)": "2,316 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "2,436 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,677 at 0.8 (edge of its grid)",
+     "rho 99 (critical ratio 0.99)": "4,526 at 0.9"
+    },
+    {
+     "policy": "Quantile",
+     "rho 4 (critical ratio 0.80)": "1,218 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,507 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "1,918 at 0.9",
+     "rho 99 (critical ratio 0.99)": "3,609 at 0.95"
+    },
+    {
+     "policy": "Naive",
+     "rho 4 (critical ratio 0.80)": "1,174 at 1.0 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,604 at 1.25",
+     "rho 19 (critical ratio 0.95)": "2,146 at 1.5",
+     "rho 99 (critical ratio 0.99)": "4,223 at 2.25"
+    }
+   ],
+   "sigma_forms": [
+    {
+     "segment": "low",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "1",
+     "B2-sqrt": "4",
+     "model versions": "5"
+    },
+    {
+     "segment": "mid",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "4",
+     "B2-sqrt": "1",
+     "model versions": "5"
+    },
+    {
+     "segment": "high",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "5",
+     "B2-sqrt": "0",
+     "model versions": "5"
+    }
+   ],
+   "by_period": {
+    "peak": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "0.3%",
+      "alpha 0.9": "6.6%",
+      "alpha 0.95": "8.4%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "5.1%",
+      "95% interval (items)": "[-6.2%, 19.8%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "23.4%",
+      "alpha 0.9": "15.4%",
+      "alpha 0.95": "18.3%",
+      "alpha 0.99": "28.2%",
+      "settings matched": "4 of 4",
+      "mean over matched": "21.3%",
+      "95% interval (items)": "[2.8%, 32.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "10 of 23",
+      "mean over matched": "25.1%",
+      "95% interval (items)": "[0.3%, 54.2%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "rest": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "9.5%",
+      "alpha 0.95": "7.4%",
+      "alpha 0.99": "52.9%",
+      "settings matched": "3 of 4",
+      "mean over matched": "23.3%",
+      "95% interval (items)": "[15.3%, 29.0%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "33.2%",
+      "alpha 0.9": "23.3%",
+      "alpha 0.95": "29.6%",
+      "alpha 0.99": "43.4%",
+      "settings matched": "4 of 4",
+      "mean over matched": "32.4%",
+      "95% interval (items)": "[24.6%, 39.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "46.2%",
+      "95% interval (items)": "[39.9%, 54.4%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "expected_outcomes": [
+    {
+     "held": true,
+     "text": "quantile policy: cycle service within 0.01 of the base case at every alpha"
+    },
+    {
+     "held": true,
+     "text": "quantile policy: average on-hand within 5% of the base case at every alpha"
+    },
+    {
+     "held": false,
+     "text": "comparator-anchored mean reduction against B3a within 5 percentage points of the base case"
+    }
+   ]
+  },
+  {
+   "id": "zerodemand",
+   "title": "Zero-demand cycles dropped",
+   "blurb": "Hindsight diagnostic, never a headline: cycles whose realised demand was zero are dropped from every policy alike.",
+   "source": "docs/results/phase10_diag_zerodemand.md",
+   "curves": [
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.8",
+     "fill": 0.9327,
+     "cycle_service": 0.8719,
+     "inv": 11.14
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.9",
+     "fill": 0.9636,
+     "cycle_service": 0.941,
+     "inv": 15.8
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.95",
+     "fill": 0.9797,
+     "cycle_service": 0.9744,
+     "inv": 22.33
+    },
+    {
+     "policy": "B3a (point forecast + empirical residual quantiles, post-hoc)",
+     "setting": "alpha 0.99",
+     "fill": 0.9955,
+     "cycle_service": 0.9968,
+     "inv": 74.88
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.8",
+     "fill": 0.9764,
+     "cycle_service": 0.9532,
+     "inv": 26.06
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.9",
+     "fill": 0.986,
+     "cycle_service": 0.9765,
+     "inv": 36.62
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.95",
+     "fill": 0.9898,
+     "cycle_service": 0.9856,
+     "inv": 45.55
+    },
+    {
+     "policy": "B2 / B2-sqrt: point policy, normal sigma (form per segment below)",
+     "setting": "alpha 0.99",
+     "fill": 0.9934,
+     "cycle_service": 0.9923,
+     "inv": 62.64
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.8",
+     "fill": 0.9318,
+     "cycle_service": 0.8673,
+     "inv": 10.52
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.9",
+     "fill": 0.9611,
+     "cycle_service": 0.9315,
+     "inv": 13.76
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.95",
+     "fill": 0.9768,
+     "cycle_service": 0.9662,
+     "inv": 17.11
+    },
+    {
+     "policy": "Quantile policy (headline)",
+     "setting": "alpha 0.99",
+     "fill": 0.9958,
+     "cycle_service": 0.9966,
+     "inv": 39.24
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.00",
+     "fill": 0.8576,
+     "cycle_service": 0.7059,
+     "inv": 7.36
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.25",
+     "fill": 0.9195,
+     "cycle_service": 0.8326,
+     "inv": 10.68
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.50",
+     "fill": 0.9497,
+     "cycle_service": 0.8976,
+     "inv": 14.37
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 1.75",
+     "fill": 0.9652,
+     "cycle_service": 0.9323,
+     "inv": 18.27
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.00",
+     "fill": 0.9742,
+     "cycle_service": 0.9538,
+     "inv": 22.34
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.25",
+     "fill": 0.9804,
+     "cycle_service": 0.9678,
+     "inv": 26.57
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.50",
+     "fill": 0.9842,
+     "cycle_service": 0.9747,
+     "inv": 30.78
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 2.75",
+     "fill": 0.9865,
+     "cycle_service": 0.9785,
+     "inv": 35.0
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.00",
+     "fill": 0.9885,
+     "cycle_service": 0.9834,
+     "inv": 39.35
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 3.50",
+     "fill": 0.9905,
+     "cycle_service": 0.9883,
+     "inv": 48.01
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.00",
+     "fill": 0.9916,
+     "cycle_service": 0.9916,
+     "inv": 56.93
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 4.50",
+     "fill": 0.9924,
+     "cycle_service": 0.9929,
+     "inv": 65.91
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.00",
+     "fill": 0.993,
+     "cycle_service": 0.9929,
+     "inv": 74.99
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 5.50",
+     "fill": 0.9936,
+     "cycle_service": 0.9929,
+     "inv": 84.17
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.00",
+     "fill": 0.9942,
+     "cycle_service": 0.9932,
+     "inv": 93.39
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 6.50",
+     "fill": 0.9945,
+     "cycle_service": 0.9936,
+     "inv": 102.81
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.00",
+     "fill": 0.9946,
+     "cycle_service": 0.9936,
+     "inv": 112.04
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 7.50",
+     "fill": 0.9948,
+     "cycle_service": 0.9939,
+     "inv": 121.72
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.00",
+     "fill": 0.9949,
+     "cycle_service": 0.9942,
+     "inv": 131.24
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 8.50",
+     "fill": 0.9951,
+     "cycle_service": 0.9946,
+     "inv": 140.89
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.00",
+     "fill": 0.9951,
+     "cycle_service": 0.9946,
+     "inv": 150.48
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 9.50",
+     "fill": 0.9952,
+     "cycle_service": 0.9946,
+     "inv": 160.24
+    },
+    {
+     "policy": "Naive (c x mu28 x P)",
+     "setting": "c 10.00",
+     "fill": 0.9952,
+     "cycle_service": 0.9946,
+     "inv": 169.93
+    }
+   ],
+   "comparison_comparator_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "4.8%",
+     "alpha 0.9": "9.5%",
+     "alpha 0.95": "8.2%",
+     "alpha 0.99": "47.9%",
+     "settings matched": "4 of 4",
+     "mean over matched": "17.6%",
+     "95% interval (items)": "[2.2%, 27.0%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "34.6%",
+     "alpha 0.9": "23.8%",
+     "alpha 0.95": "29.0%",
+     "alpha 0.99": "41.8%",
+     "settings matched": "4 of 4",
+     "mean over matched": "32.3%",
+     "95% interval (items)": "[24.7%, 38.6%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "-",
+     "alpha 0.9": "-",
+     "alpha 0.95": "-",
+     "alpha 0.99": "-",
+     "settings matched": "21 of 23",
+     "mean over matched": "47.1%",
+     "95% interval (items)": "[15.5%, 54.3%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "comparison_quantile_anchored": [
+    {
+     "comparator": "B3a (post-hoc, the fair benchmark)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "10.7%",
+     "alpha 0.95": "19.1%",
+     "alpha 0.99": "n/a",
+     "settings matched": "2 of 4",
+     "mean over matched": "14.9%",
+     "95% interval (items)": "[11.1%, 26.3%]",
+     "resamples with a match": "100%"
+    },
+    {
+     "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+     "alpha 0.8": "n/a",
+     "alpha 0.9": "n/a",
+     "alpha 0.95": "35.3%",
+     "alpha 0.99": "n/a",
+     "settings matched": "1 of 4",
+     "mean over matched": "35.3%",
+     "95% interval (items)": "[31.7%, 45.1%]",
+     "resamples with a match": "58%"
+    },
+    {
+     "comparator": "Naive (c x mu28 x P), widened grid",
+     "alpha 0.8": "13.7%",
+     "alpha 0.9": "20.1%",
+     "alpha 0.95": "28.9%",
+     "alpha 0.99": "n/a",
+     "settings matched": "3 of 4",
+     "mean over matched": "20.9%",
+     "95% interval (items)": "[16.7%, 34.5%]",
+     "resamples with a match": "100%"
+    }
+   ],
+   "by_segment": {
+    "low": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "3.1%",
+      "alpha 0.9": "13.6%",
+      "alpha 0.95": "1.4%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "6.0%",
+      "95% interval (items)": "[-2.1%, 17.8%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "4.5%",
+      "alpha 0.9": "8.6%",
+      "alpha 0.95": "12.2%",
+      "alpha 0.99": "6.4%",
+      "settings matched": "4 of 4",
+      "mean over matched": "7.9%",
+      "95% interval (items)": "[-1.0%, 13.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "20 of 23",
+      "mean over matched": "46.3%",
+      "95% interval (items)": "[14.7%, 53.4%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "mid": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "7.4%",
+      "alpha 0.9": "12.5%",
+      "alpha 0.95": "10.3%",
+      "alpha 0.99": "49.2%",
+      "settings matched": "4 of 4",
+      "mean over matched": "19.9%",
+      "95% interval (items)": "[3.1%, 30.2%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "15.8%",
+      "alpha 0.9": "18.0%",
+      "alpha 0.95": "5.1%",
+      "alpha 0.99": "14.4%",
+      "settings matched": "4 of 4",
+      "mean over matched": "13.3%",
+      "95% interval (items)": "[4.6%, 20.4%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "50.9%",
+      "95% interval (items)": "[21.9%, 60.9%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "high": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "6.7%",
+      "alpha 0.95": "9.6%",
+      "alpha 0.99": "49.8%",
+      "settings matched": "3 of 4",
+      "mean over matched": "22.0%",
+      "95% interval (items)": "[-1.3%, 27.9%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "9.5%",
+      "alpha 0.9": "21.3%",
+      "alpha 0.95": "32.9%",
+      "alpha 0.99": "48.4%",
+      "settings matched": "4 of 4",
+      "mean over matched": "28.0%",
+      "95% interval (items)": "[10.1%, 38.6%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "15 of 23",
+      "mean over matched": "34.6%",
+      "95% interval (items)": "[3.1%, 55.7%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "service_gap": [
+    {
+     "period": "all",
+     "policy": "B3a",
+     "alpha 0.8": "0.072",
+     "alpha 0.9": "0.041",
+     "alpha 0.95": "0.024",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "all",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.153",
+     "alpha 0.9": "0.077",
+     "alpha 0.95": "0.036",
+     "alpha 0.99": "0.002"
+    },
+    {
+     "period": "all",
+     "policy": "Quantile",
+     "alpha 0.8": "0.067",
+     "alpha 0.9": "0.032",
+     "alpha 0.95": "0.016",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "peak",
+     "policy": "B3a",
+     "alpha 0.8": "0.072",
+     "alpha 0.9": "0.036",
+     "alpha 0.95": "0.023",
+     "alpha 0.99": "0.005"
+    },
+    {
+     "period": "peak",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.142",
+     "alpha 0.9": "0.072",
+     "alpha 0.95": "0.029",
+     "alpha 0.99": "-0.003"
+    },
+    {
+     "period": "peak",
+     "policy": "Quantile",
+     "alpha 0.8": "0.059",
+     "alpha 0.9": "0.019",
+     "alpha 0.95": "0.01",
+     "alpha 0.99": "0.004"
+    },
+    {
+     "period": "rest",
+     "policy": "B3a",
+     "alpha 0.8": "0.072",
+     "alpha 0.9": "0.042",
+     "alpha 0.95": "0.025",
+     "alpha 0.99": "0.007"
+    },
+    {
+     "period": "rest",
+     "policy": "B2 / B2-sqrt",
+     "alpha 0.8": "0.156",
+     "alpha 0.9": "0.078",
+     "alpha 0.95": "0.037",
+     "alpha 0.99": "0.004"
+    },
+    {
+     "period": "rest",
+     "policy": "Quantile",
+     "alpha 0.8": "0.07",
+     "alpha 0.9": "0.035",
+     "alpha 0.95": "0.018",
+     "alpha 0.99": "0.007"
+    }
+   ],
+   "cost": [
+    {
+     "policy": "B3a",
+     "rho 4 (critical ratio 0.80)": "1,165 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,439 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "1,920 at 0.9",
+     "rho 99 (critical ratio 0.99)": "3,632 at 0.95"
+    },
+    {
+     "policy": "B2 / B2-sqrt",
+     "rho 4 (critical ratio 0.80)": "2,121 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "2,240 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "2,479 at 0.8 (edge of its grid)",
+     "rho 99 (critical ratio 0.99)": "4,254 at 0.9"
+    },
+    {
+     "policy": "Quantile",
+     "rho 4 (critical ratio 0.80)": "1,104 at 0.8 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,395 at 0.8 (edge of its grid)",
+     "rho 19 (critical ratio 0.95)": "1,776 at 0.9",
+     "rho 99 (critical ratio 0.99)": "3,419 at 0.95"
+    },
+    {
+     "policy": "Naive",
+     "rho 4 (critical ratio 0.80)": "1,099 at 1.0 (edge of its grid)",
+     "rho 9 (critical ratio 0.90)": "1,510 at 1.25",
+     "rho 19 (critical ratio 0.95)": "2,034 at 1.5",
+     "rho 99 (critical ratio 0.99)": "4,045 at 2.25"
+    }
+   ],
+   "sigma_forms": [
+    {
+     "segment": "low",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "1",
+     "B2-sqrt": "4",
+     "model versions": "5"
+    },
+    {
+     "segment": "mid",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "4",
+     "B2-sqrt": "1",
+     "model versions": "5"
+    },
+    {
+     "segment": "high",
+     "B2 (constant CV)": "0",
+     "B2 (constant CV, check failed for both forms)": "5",
+     "B2-sqrt": "0",
+     "model versions": "5"
+    }
+   ],
+   "by_period": {
+    "peak": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "0.5%",
+      "alpha 0.9": "9.1%",
+      "alpha 0.95": "10.8%",
+      "alpha 0.99": "n/a",
+      "settings matched": "3 of 4",
+      "mean over matched": "6.8%",
+      "95% interval (items)": "[-5.4%, 22.3%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "27.4%",
+      "alpha 0.9": "18.5%",
+      "alpha 0.95": "22.1%",
+      "alpha 0.99": "30.9%",
+      "settings matched": "4 of 4",
+      "mean over matched": "24.7%",
+      "95% interval (items)": "[5.3%, 35.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "10 of 23",
+      "mean over matched": "28.9%",
+      "95% interval (items)": "[4.0%, 56.7%]",
+      "resamples with a match": "100%"
+     }
+    ],
+    "rest": [
+     {
+      "comparator": "B3a (post-hoc, the fair benchmark)",
+      "alpha 0.8": "n/a",
+      "alpha 0.9": "10.0%",
+      "alpha 0.95": "7.7%",
+      "alpha 0.99": "49.8%",
+      "settings matched": "3 of 4",
+      "mean over matched": "22.5%",
+      "95% interval (items)": "[10.6%, 28.3%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "B2 / B2-sqrt (point policy, normal sigma)",
+      "alpha 0.8": "35.9%",
+      "alpha 0.9": "24.7%",
+      "alpha 0.95": "30.5%",
+      "alpha 0.99": "44.6%",
+      "settings matched": "4 of 4",
+      "mean over matched": "33.9%",
+      "95% interval (items)": "[26.2%, 40.7%]",
+      "resamples with a match": "100%"
+     },
+     {
+      "comparator": "Naive (c x mu28 x P), widened grid",
+      "alpha 0.8": "-",
+      "alpha 0.9": "-",
+      "alpha 0.95": "-",
+      "alpha 0.99": "-",
+      "settings matched": "21 of 23",
+      "mean over matched": "47.5%",
+      "95% interval (items)": "[41.3%, 55.7%]",
+      "resamples with a match": "100%"
+     }
+    ]
+   },
+   "expected_outcomes": [
+    {
+     "held": true,
+     "text": "fill rate identical to the base case for every policy setting (dropped cells had no demand)"
+    },
+    {
+     "held": true,
+     "text": "cycle service below the base case for every quantile, B3a and B2 setting"
+    },
+    {
+     "held": true,
+     "text": "comparator-anchored mean reduction against B3a is positive"
+    }
+   ]
+  }
+ ],
+ "forecast_accuracy": {
+  "source": "docs/results/phase10_test_forecast_metrics.md",
+  "horizon": 10,
+  "methods": [
+   {
+    "": "B3a (post-hoc): XGBoost mean + empirical residual quantiles",
+    "scaled pinball, mean": "0.270571",
+    "scaled pinball, median over series": "0.222362",
+    "WAPE of the median": "0.336994",
+    "cov_hi 0.8": "0.842604",
+    "status 0.8": "consistent",
+    "cov_hi 0.9": "0.918542",
+    "status 0.9": "consistent",
+    "cov_hi 0.95": "0.956875",
+    "status 0.95": "consistent",
+    "cov_hi 0.99": "0.99125",
+    "status 0.99": "consistent"
+   },
+   {
+    "": "Quantile model",
+    "scaled pinball, mean": "0.229612",
+    "scaled pinball, median over series": "0.187703",
+    "WAPE of the median": "0.318859",
+    "cov_hi 0.8": "0.843438",
+    "status 0.8": "consistent",
+    "cov_hi 0.9": "0.925938",
+    "status 0.9": "consistent",
+    "cov_hi 0.95": "0.96",
+    "status 0.95": "consistent",
+    "cov_hi 0.99": "0.994479",
+    "status 0.99": "consistent"
+   },
+   {
+    "": "B3c (post-hoc): MA-28 + empirical residual quantiles",
+    "scaled pinball, mean": "0.288706",
+    "scaled pinball, median over series": "0.234176",
+    "WAPE of the median": "0.347441",
+    "cov_hi 0.8": "0.839583",
+    "status 0.8": "consistent",
+    "cov_hi 0.9": "0.914062",
+    "status 0.9": "consistent",
+    "cov_hi 0.95": "0.954896",
+    "status 0.95": "consistent",
+    "cov_hi 0.99": "0.990938",
+    "status 0.99": "consistent"
+   },
+   {
+    "": "B2 (pre-specified): XGBoost mean + normal sigma",
+    "scaled pinball, mean": "0.378341",
+    "scaled pinball, median over series": "0.314631",
+    "WAPE of the median": "0.343615",
+    "cov_hi 0.8": "0.948125",
+    "status 0.8": "over",
+    "cov_hi 0.9": "0.969375",
+    "status 0.9": "over",
+    "cov_hi 0.95": "0.978646",
+    "status 0.95": "consistent/over",
+    "cov_hi 0.99": "0.986562",
+    "status 0.99": "consistent"
+   },
+   {
+    "": "B1: MA-28 + normal sigma",
+    "scaled pinball, mean": "0.397071",
+    "scaled pinball, median over series": "0.331305",
+    "WAPE of the median": "0.350378",
+    "cov_hi 0.8": "0.937708",
+    "status 0.8": "over",
+    "cov_hi 0.9": "0.963229",
+    "status 0.9": "over",
+    "cov_hi 0.95": "0.971875",
+    "status 0.95": "consistent/over",
+    "cov_hi 0.99": "0.981979",
+    "status 0.99": "consistent"
+   }
+  ],
+  "point": [
+   {
+    "": "MA-28",
+    "WAPE": "0.3504"
+   },
+   {
+    "": "XGBoost mean (normalised)",
+    "WAPE": "0.3436"
+   },
+   {
+    "": "Quantile model median",
+    "WAPE": "0.3189"
+   }
+  ],
+  "against_b3a": "Quantile model against B3a: difference in mean scaled pinball -0.0410, 95% interval [-0.0504, -0.0337] over items; lower in 4 of 4 cells (versions)."
+ },
+ "null_tests": {
+  "test": [
+   {
+    "demand": "real demand",
+    "draws": "1",
+    "cs90 mean": "0.9405",
+    "cs95 mean": "0.9707",
+    "fill90 mean": "0.9611",
+    "red_b3a mean": "0.1601",
+    "red_b2 mean": "0.2947",
+    "red_b3a 2.5%-97.5% over draws": "-",
+    "draws with red_b3a below the real value": "-"
+   },
+   {
+    "demand": "BLOCK (weekly blocks permuted within series)",
+    "draws": "20",
+    "cs90 mean": "0.9108",
+    "cs95 mean": "0.9483",
+    "fill90 mean": "0.9317",
+    "red_b3a mean": "0.2699",
+    "red_b2 mean": "0.426",
+    "red_b3a 2.5%-97.5% over draws": "[22.6%, 30.3%]",
+    "draws with red_b3a below the real value": "0 of 20"
+   },
+   {
+    "demand": "SWAP (each series gets another series' demand)",
+    "draws": "20",
+    "cs90 mean": "0.7115",
+    "cs95 mean": "0.7492",
+    "fill90 mean": "0.5706",
+    "red_b3a mean": "0.0754",
+    "red_b2 mean": "0.372",
+    "red_b3a 2.5%-97.5% over draws": "[5.3%, 9.6%]",
+    "draws with red_b3a below the real value": "20 of 20"
+   }
+  ],
+  "tuning": [
+   {
+    "demand": "real demand",
+    "draws": "1",
+    "cs90 mean": "0.9439",
+    "cs95 mean": "0.9701",
+    "fill90 mean": "0.9527",
+    "red_b3a mean": "0.0393",
+    "red_b2 mean": "0.3006",
+    "red_b3a 2.5%-97.5% over draws": "-",
+    "draws with red_b3a below the real value": "-"
+   },
+   {
+    "demand": "BLOCK (weekly blocks permuted within series)",
+    "draws": "20",
+    "cs90 mean": "0.9347",
+    "cs95 mean": "0.9693",
+    "fill90 mean": "0.9463",
+    "red_b3a mean": "0.1299",
+    "red_b2 mean": "0.3553",
+    "red_b3a 2.5%-97.5% over draws": "[9.4%, 21.0%]",
+    "draws with red_b3a below the real value": "0 of 20"
+   },
+   {
+    "demand": "SWAP (each series gets another series' demand)",
+    "draws": "20",
+    "cs90 mean": "0.721",
+    "cs95 mean": "0.7604",
+    "fill90 mean": "0.5431",
+    "red_b3a mean": "0.0969",
+    "red_b2 mean": "0.4976",
+    "red_b3a 2.5%-97.5% over draws": "[6.5%, 14.8%]",
+    "draws with red_b3a below the real value": "0 of 20"
+   }
+  ]
+ }
+}

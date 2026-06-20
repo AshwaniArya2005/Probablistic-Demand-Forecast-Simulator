@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demand Forecast Simulator</title>
+<meta name="description" content="Precomputed results of a probabilistic demand forecasting and inventory replay study on M5 retail data.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Probabilistic demand forecasting and inventory replay</h1>
+  <p class="sub">Historical replay on M5 retail data (300 California item-store series), under stated assumptions. <strong>This demo serves precomputed results only</strong>; nothing here runs a live model.</p>
+  <p id="banner" class="banner" role="status">Loading…</p>
+</header>
+<main>
+  <nav id="scenarios" aria-label="Scenarios that were run"></nav>
+  <section id="scenario"><p class="muted">Loading the recorded results…</p></section>
+  <section id="forecast" aria-labelledby="h-forecast"></section>
+  <section id="whatif" aria-labelledby="h-whatif"></section>
+  <section id="caveats" aria-labelledby="h-caveats"></section>
+</main>
+<footer>
+  <p id="last-checked" class="muted">Last checked: not yet.</p>
+  <p class="muted">Frozen result v1. Results, tests and the decision log: see the repository README.</p>
+</footer>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

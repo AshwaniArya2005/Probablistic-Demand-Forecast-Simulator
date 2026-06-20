@@ -4,7 +4,7 @@ Forecasts the **distribution** of demand over a protection interval (7, 10 or 14
 inventory ordering policies that use those forecasts in a historical replay. Built on the M5 (Walmart) data, 300 California series.
 
 **Status: work in progress.** Data preparation, features, baselines, point and quantile models, their evaluation on the tuning folds, the explanation
-layer and the planner-facing quantities (reorder point, safety stock, stockout-risk label) are done (phases 2 to 9). The base-case inventory replay has been run once on the test window (phase 10); its sensitivities, the API and the dashboard do not exist yet.
+layer and the planner-facing quantities (reorder point, safety stock, stockout-risk label) are done (phases 2 to 9). The base-case inventory replay, its sensitivities and the forecast-accuracy report have been run on the test window (phase 10, frozen as **v1**). A static dashboard and an Express API serving those precomputed results are built and tested locally (see *The demo* below); **they are not deployed yet**.
 **Inventory results are historical replays under stated assumptions (no real stock, lead-time or cost data exist), not claims about a real retailer.** Every number in this file comes
 from a logged run; the decision log and the pre-registered rules are in [`docs/design.md`](docs/design.md), the run outputs in [`docs/results/`](docs/results/).
 
@@ -57,6 +57,16 @@ from a logged run; the decision log and the pre-registered rules are in [`docs/d
 
 Planner sentences do not interpret the series-age input (it sits in a neutral "remaining factors" theme); attributions are associations, not causal effects.
 
+## The demo: precomputed results, no live model
+
+The deployed demo (not yet deployed) **serves precomputed results only**: Postgres holds the scenario results and, locally, the per-series quantile tables; an Express API reads them; a static page renders them. **No model runs behind the public demo.** The order-quantity what-if is `max(0, ceil(q) - inventory position)`, computed in Express from a stored quantile. The FastAPI model service stays in the repository (`api/`, its tests, `docker-compose.yml` with a hash-verified, natively exported model) but is not part of the deployed demo.
+
+- **Scenarios shown are only those that were run** (base case, lead time 7, random lead time, no future-price inputs, zero-demand cycles dropped). Every comparison leads with B3a, with its interval and its statistic label; the 0.99 setting is marked as the costly tail; risk labels are bands, not probabilities; cost is shown as unresolved; there are no test-window explanations (those wait for the final frozen explanation run).
+- **Cold starts.** The page renders at once from a recorded snapshot (`web/snapshot.json`), says so, and swaps to live data when the API answers (8 s timeouts, a "waking the service" message).
+- **Data publication.** The per-series quantile tables are derived from M5 sales and are loaded only into a local database (the loader refuses a non-local one) until the Kaggle data-use terms are confirmed; the committed snapshot holds aggregates only (a test checks that it contains no series identifiers or dates).
+- **Health and uptime (availability only; drift monitoring is out of scope).** `GET /health` is a cheap liveness check returning the version. `GET /health/deep` checks the database (`SELECT 1`) and that the loaded precomputed-data version is the one the code expects; it returns `503` with a short reason (`database` or `data version`) and nothing else. `GET /api/status` reports the time and outcome of the last deep check (the dashboard footer). Requests are rate-limited (120 a minute, 30 on `/health/deep`). **Uptime monitoring status: not set up.** The intended monitor is one UptimeRobot HTTP check on `/health/deep` every 5 minutes with email alerts, created by the repository owner after deployment (never on heavy routes); the badge will be added here when it exists.
+- **Run it locally:** `docker compose up -d db`, load with `node scripts/load.js` (in `server/`, `DATABASE_URL=postgres://demo:demo@127.0.0.1:5432/demo`, add `--quantiles` after `uv run python ml/build_demo_data.py quantiles`), `docker compose up -d server`, open `web/index.html` (set `API_BASE` in `web/config.js`). Tests: `uv run pytest` and `cd server && npm test`.
+
 ## Known limitation and future work
 
 **Everything here is v1 and frozen.** Future work, to be run only as a separately pre-registered **v2 reported next to v1, never replacing it:** dropping the series-age input (`age_days`; a post-hoc, report-only tuning-fold ablation lowered scaled pinball from 0.2639 to 0.2594, -1.7%, and the model is unchanged), training on more series than 300, a Tweedie or negative-binomial loss, and a wider hyper-parameter search.
@@ -75,9 +85,11 @@ Planner sentences do not interpret the series-age input (it sits in a neutral "r
 Python 3.12 with [uv](https://docs.astral.sh/uv/). The M5 data is not included (download it from Kaggle under its own rules and put `sales_train_evaluation.csv`, `calendar.csv` and `sell_prices.csv` in `data/raw/`).
 
 ```
-uv sync
+uv sync --group api
 uv run pytest                    # fast suite, no data needed
 uv run python ml/prepare.py      # clean the data, derive the closed-day rule and velocity segments, draw the 100-item subset
 uv run python ml/features.py     # features and targets
 uv run pytest -m realdata        # real-data checks
+uv run python ml/build_demo_data.py   # web/snapshot.json from the committed result files
+(cd server && npm ci && npm test)     # Express API tests
 ```

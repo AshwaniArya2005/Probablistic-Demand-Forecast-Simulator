@@ -1,0 +1,15 @@
+# Render blueprint for the Express demo API only (the FastAPI service is not deployed; the demo serves precomputed results).
+# Free web services spin down after 15 minutes without traffic; a 5-minute uptime check on /health/deep keeps this one awake (about 744 of the 750 free hours a month).
+services:
+  - type: web
+    name: demand-forecast-demo-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
