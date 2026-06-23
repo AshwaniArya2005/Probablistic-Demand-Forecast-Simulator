@@ -1,6 +1,6 @@
 {
  "data_version": "v1-2026-09-21",
- "built": "2026-09-21",
+ "built": "2026-09-22",
  "framing": "Every comparison leads with B3a, the post-hoc benchmark that keeps the same point forecast and takes its quantiles from empirical residuals: it is the fair benchmark. B2 is the pre-specified normal-sigma point policy (its constant-variance assumption failed the Phase 9 check for high-velocity series).",
  "labels": {
   "comparator-anchored": "the quantile policy's inventory interpolated at each comparator setting's own fill rate",
