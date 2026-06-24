@@ -144,13 +144,19 @@ class XGB(_Trees):
         p, M, param = self.params, self._matrix(X, True), self._param()
         rounds = p["fixed_rounds"]
         self.hit_cap_ = False
+        self.eval_history_ = None
         if "date" in X.columns:
             tr, va = early_stop_split(X["date"], self.P)
             if len(tr) and len(va):
-                bst = xgb.train(param, xgb.DMatrix(M[tr], label=y[tr]), p["max_rounds"], evals=[(xgb.DMatrix(M[va], label=y[va]), "val")],
-                                early_stopping_rounds=p["patience"], verbose_eval=False)
+                hist = {}
+                # "val" stays the last eval set, so it is still the one early stopping monitors and `rounds` is unaffected;
+                # "train" is added only so both curves can be logged (ml/training_curves.py) when a version is actually refit
+                bst = xgb.train(param, xgb.DMatrix(M[tr], label=y[tr]), p["max_rounds"],
+                                evals=[(xgb.DMatrix(M[tr], label=y[tr]), "train"), (xgb.DMatrix(M[va], label=y[va]), "val")],
+                                early_stopping_rounds=p["patience"], verbose_eval=False, evals_result=hist)
                 rounds = bst.best_iteration + 1
                 self.hit_cap_ = rounds >= p["max_rounds"]          # reported: the pre-registered round cap bound
+                self.eval_history_ = hist                          # {"train": {metric: [..]}, "val": {metric: [..]}}, round-indexed
         self.n_rounds_ = rounds
         self.model = xgb.train(param, xgb.DMatrix(M, label=y), rounds)
 
