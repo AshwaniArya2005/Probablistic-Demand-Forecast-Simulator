@@ -35,7 +35,8 @@ Everything here is decided in [`design.md`](design.md) (pre-registered rules, de
 
 ## Checks on the checker
 Independent hand recomputation of one series over ten review weeks (tuning and test window: all agree); a shuffled-demand null test (tuning and test window); a random-lead-time follow-up (draws applied, not saturation); a rest-period diagnostic; a clean-clone reproduction of the data pipeline and tests
-(which found and fixed one defect); a retrain of one frozen version from scratch compared within a stated tolerance; recorded hashes of every frozen model file.
+(which found and fixed one defect); a retrain of one frozen version from scratch compared within a stated tolerance; recorded hashes of every frozen model file; a stockout-risk ROC/PR diagnostic on the tuning folds (exploratory, no retraining) that independently corroborates the Phase 9 label
+investigation — discrimination is weak (ROC AUC 0.59) at the reference level where near-zero medians and outages dominate, and improves (AUC 0.83) further into the tail (`docs/results/phase11_stockout_roc_tuning.md`).
 
 ## Explanations
 Exact per-quantile contributions from single-target boosters sliced from the joint model (XGBoost 3.4.1's joint `pred_contribs` does not reconcile with `predict`), converted to units and grouped into themes for planner sentences ("price is X% below usual", never "promotion"). Associations, not causal effects. Tuning-fold rows only until a final frozen explanation run.
