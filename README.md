@@ -20,6 +20,9 @@ The only skill evidence in this project is the forecast accuracy on the **held-o
 | **Mean-forecast WAPE, normalised XGBoost mean vs MA-28** (like for like: both estimate the mean) | 0.3436 vs 0.3504: roughly on par (2% lower) | 0.3146 vs 0.3199: roughly on par (1.7% lower) |
 | Median-forecast WAPE, the quantile model's median vs MA-28 (see the caveat below) | 0.3189 vs 0.3504 | 0.2953 vs 0.3199 |
 
+![Test-window scaled pinball by method and horizon, B3a first](docs/figures/test_window_scaled_pinball.png)
+![Achieved vs nominal coverage, test window](docs/figures/test_window_coverage_reliability.png)
+
 - **The median caveat.** The quantile model's median is 9% below MA-28's WAPE at horizon 10 (8% at horizon 14), but **the median is the forecast that minimises absolute error, and WAPE is an absolute-error metric**, while MA-28 and the XGBoost mean forecast estimate the mean. Part of that gap is a difference of objective, not evidence that demand is found better; the like-for-like point comparison is the mean forecast against MA-28, and it is on par.
 - **Horizons.** Test-window metrics exist for horizons 10 (the base case) and 14 (the lead-time-7 sensitivity). **There are no test-window metrics for horizon 7**; horizon 7 has tuning-fold results only.
 - **Uncertainty.** Intervals are a bootstrap over the 100 items: they reflect which items were sampled, not variation between periods (one 26-week window, one retailer, 300 series from three stores). B3a and B3c are post-hoc benchmarks defined after the tuning results were known; against the pre-specified normal-sigma policy (B2, mean scaled pinball 0.3783 at horizon 10) the gap is larger, mostly because of the normal-sigma assumption.
