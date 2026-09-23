@@ -33,6 +33,26 @@ if (withQuantiles && !local && process.env.ALLOW_PUBLIC_QUANTILES !== 'confirmed
       await pool.query(`INSERT INTO quantiles (series, review_date, horizon, q10, q50, q80, q90, q95, q99, zero_run) VALUES ${values.join(',')}`, params);
     }
   }
+  if (withQuantiles) {
+    const fpath = path.join(root, 'demo_private', 'features.csv');
+    if (fs.existsSync(fpath)) {
+      // split(/\r?\n/) not split('\n'): pandas' to_csv writes CRLF on Windows, and a stray '\r'
+      // left on the payload field would break both the unquoting check below and the resulting JSON
+      const flines = fs.readFileSync(fpath, 'utf8').trim().split(/\r?\n/).slice(1);
+      await pool.query('DELETE FROM features');
+      for (let i = 0; i < flines.length; i += 500) {
+        const chunk = flines.slice(i, i + 500).map((l) => {
+          const firstComma = l.indexOf(','), secondComma = l.indexOf(',', firstComma + 1), thirdComma = l.indexOf(',', secondComma + 1);
+          let payload = l.slice(thirdComma + 1);
+          // pandas' to_csv quotes this field (JSON syntax always contains '"') and doubles internal quotes; undo that minimal CSV quoting
+          if (payload.startsWith('"') && payload.endsWith('"')) payload = payload.slice(1, -1).replace(/""/g, '"');
+          return [l.slice(0, firstComma), l.slice(firstComma + 1, secondComma), Number(l.slice(secondComma + 1, thirdComma)), payload];
+        });
+        const params = []; const values = chunk.map((c, j) => { params.push(c[0], c[1], c[2], c[3]); return `($${j * 4 + 1},$${j * 4 + 2},$${j * 4 + 3},$${j * 4 + 4})`; });
+        await pool.query(`INSERT INTO features (series, review_date, horizon, payload) VALUES ${values.join(',')}`, params);
+      }
+    }
+  }
   // the data version is written last: /health/deep only reports ok when every table above finished loading
   await pool.query('DELETE FROM data_version');
   await pool.query('INSERT INTO data_version (version) VALUES ($1)', [EXPECTED_DATA_VERSION]);
