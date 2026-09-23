@@ -127,5 +127,22 @@ def quantiles():
     print("wrote demo_private/quantiles.csv:", len(d), "rows (git-ignored; do not publish)")
 
 
+def features():
+    import versions
+    meta = json.loads((ROOT / "models" / "serving" / "v4_P10.meta.json").read_text(encoding="utf-8"))
+    cols = meta["columns"]
+    dates = versions.use_dates(4)
+    feats = pd.read_parquet(PROCESSED / "features.parquet", columns=["id", "date", *cols])
+    feats = feats[feats.date.isin(dates)]
+    out = pd.DataFrame({
+        "series": feats["id"], "review_date": feats["date"].dt.strftime("%Y-%m-%d"), "horizon": 10,
+        "payload": feats[cols].apply(lambda r: json.dumps({c: (None if pd.isna(v) else float(v)) for c, v in r.items()}), axis=1),
+    })
+    (ROOT / "demo_private").mkdir(exist_ok=True)
+    out.to_csv(ROOT / "demo_private" / "features.csv", index=False)
+    print("wrote demo_private/features.csv:", len(out), "rows (git-ignored; do not publish)")
+
+
 if __name__ == "__main__":
-    quantiles() if len(sys.argv) > 1 and sys.argv[1] == "quantiles" else build()
+    arg = sys.argv[1] if len(sys.argv) > 1 else None
+    {"quantiles": quantiles, "features": features}.get(arg, build)()
