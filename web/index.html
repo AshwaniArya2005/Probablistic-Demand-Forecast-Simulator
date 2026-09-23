@@ -13,13 +13,21 @@
   <p class="sub">Historical replay on M5 retail data (300 California item-store series), under stated assumptions. <strong>This demo serves precomputed results only</strong>; nothing here runs a live model.</p>
   <p id="banner" class="banner" role="status">Loading…</p>
 </header>
-<main>
-  <nav id="scenarios" aria-label="Scenarios that were run"></nav>
-  <section id="scenario"><p class="muted">Loading the recorded results…</p></section>
-  <section id="forecast" aria-labelledby="h-forecast"></section>
-  <section id="whatif" aria-labelledby="h-whatif"></section>
-  <section id="caveats" aria-labelledby="h-caveats"></section>
-</main>
+<div class="layout">
+  <nav class="page-nav" aria-label="Page sections">
+    <a href="#scenario">Results</a>
+    <a href="#forecast">Forecast accuracy</a>
+    <a href="#whatif">Order what-if</a>
+    <a href="#caveats">How to read this</a>
+  </nav>
+  <main>
+    <nav id="scenarios" aria-label="Scenarios that were run"></nav>
+    <section id="scenario"><p class="muted">Loading the recorded results…</p></section>
+    <section id="forecast" aria-labelledby="h-forecast"></section>
+    <section id="whatif" aria-labelledby="h-whatif"></section>
+    <section id="caveats" aria-labelledby="h-caveats"></section>
+  </main>
+</div>
 <footer>
   <p id="last-checked" class="muted">Last checked: not yet.</p>
   <p class="muted">Frozen result v1. Results, tests and the decision log: see the repository README.</p>

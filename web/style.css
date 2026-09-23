@@ -7,8 +7,18 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-header, main, footer { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header, footer { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
 header { padding-top: 24px; }
+.layout { max-width: 1040px; margin: 0 auto; padding: 0 16px; display: grid; grid-template-columns: 180px 1fr; gap: 28px; }
+main { min-width: 0; }
+.page-nav { position: sticky; top: 16px; align-self: start; margin-top: 20px; display: flex; flex-direction: column; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.page-nav a { padding: 7px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: .88rem; border: 1px solid transparent; }
+.page-nav a:hover { color: var(--fg); border-color: var(--line); }
+.page-nav a.active { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; gap: 4px; }
+  .page-nav { position: static; margin-top: 8px; flex-direction: row; overflow-x: auto; gap: 4px; }
+}
 h1 { font-size: 1.5rem; margin: 0 0 4px; }
 h2 { font-size: 1.15rem; margin: 28px 0 8px; }
 h3 { font-size: 1rem; margin: 18px 0 6px; }

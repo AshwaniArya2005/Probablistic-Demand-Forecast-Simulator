@@ -5,7 +5,7 @@ const state = { data: null, live: false, scenario: 'primary' };
 
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') el.className = v; else if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v === true ? '' : v); }
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') el.className = v; else if (typeof v === 'function') el[k] = v; else if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v === true ? '' : v); }
   for (const kid of kids.flat()) if (kid !== null && kid !== undefined && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
   return el;
 };
@@ -145,10 +145,23 @@ function renderWhatIf() {
 
 function renderAll() { renderScenarioNav(); renderScenario(); renderForecast(); renderWhatIf(); renderCaveats(); }
 
+// ---------- side nav: highlight the section in view ----------
+function initPageNav() {
+  const links = new Map([...document.querySelectorAll('.page-nav a')].map((a) => [a.getAttribute('href').slice(1), a]));
+  const setActive = (id) => links.forEach((a, k) => a.classList.toggle('active', k === id));
+  setActive(links.keys().next().value);
+  const observer = new IntersectionObserver((entries) => {
+    const hit = entries.find((e) => e.isIntersecting);
+    if (hit) setActive(hit.target.id);
+  }, { rootMargin: '-10% 0px -70% 0px' });
+  for (const id of links.keys()) { const el = $(id); if (el) observer.observe(el); }
+}
+
 // ---------- boot: snapshot first, live when the API answers ----------
 async function boot() {
   try { state.data = await getJSON('snapshot.json', CFG.TIMEOUT_MS); } catch (e) { say('Could not load the recorded results.'); return; }
   renderAll();
+  initPageNav();
   if (!CFG.API_BASE) { say('Showing the recorded snapshot of the results (no live service configured).'); return; }
   say('Showing the recorded snapshot while the service wakes up (a cold start can take about a minute)…');
   const waking = setTimeout(() => say('Waking the service… showing the recorded snapshot in the meantime.'), CFG.WAKING_AFTER_MS);
