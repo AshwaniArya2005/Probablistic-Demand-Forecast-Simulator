@@ -7,3 +7,9 @@ CREATE TABLE IF NOT EXISTS quantiles (
   q10 real NOT NULL, q50 real NOT NULL, q80 real NOT NULL, q90 real NOT NULL, q95 real NOT NULL, q99 real NOT NULL, zero_run boolean NOT NULL DEFAULT false,
   PRIMARY KEY (series, review_date, horizon)
 );
+-- per-series model input features for live inference: covers only the v4-served slice of test dates (a subset of `quantiles`), same publication gate
+CREATE TABLE IF NOT EXISTS features (
+  series text NOT NULL, review_date date NOT NULL, horizon int NOT NULL,
+  payload jsonb NOT NULL,
+  PRIMARY KEY (series, review_date, horizon)
+);
