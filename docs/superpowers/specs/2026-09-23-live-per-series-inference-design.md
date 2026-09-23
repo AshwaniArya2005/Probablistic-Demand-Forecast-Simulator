@@ -52,11 +52,18 @@ Hosting split:
 Extend `ml/build_demo_data.py` with a `features()` function, mirroring the existing
 `quantiles()`:
 
-- Same universe as `quantiles.csv`: the rows already in `features.parquet` for the 300
-  series × 25 test-window review dates × horizon 10 that `quantiles()` already selects.
-- For each row, take exactly `ml/features.py`'s `columns(P=10)` list (the model's real input
-  contract) plus `mean_28` (needed when the model is normalised, same as
-  `QuantileRequest` in `api/app.py` expects).
+- **Narrower universe than `quantiles.csv`.** `quantiles.csv` pools outputs from all five
+  rolling retrain versions (`v0`-`v4`, `ml/versions.py`), each serving its own slice of the
+  25 test dates via `versions.use_dates(v)`. `models/serving/` only exports **v4**. A live
+  call to the v4 model only reproduces the *stored* value for dates v4 itself served — for
+  any other date, live and precomputed would legitimately disagree (a different model served
+  that date historically), which would look like a bug and isn't one. So: features export is
+  300 series × `versions.use_dates(4)` only (the tail slice of the test window; roughly the
+  last 6-7 of the 25 Sunday review dates), horizon 10.
+- Read `models/serving/v4_P10.meta.json`'s `columns` list directly (don't hand-duplicate
+  column names — this is the model's real, authoritative input contract, already includes
+  `mean_28` since this model is normalised) and select exactly those columns from
+  `features.parquet`, keyed by (`id`, `date`).
 - Write `demo_private/features.csv` (git-ignored, same as `quantiles.csv` — "do not publish"
   header comment carried over).
 
@@ -171,7 +178,8 @@ Loading state while waiting: reuse the existing "waking the service" copy patter
 
 - Malformed query params → 400, same regex-based validation already used for `/api/whatif`.
 - Series/date/horizon combination not in the precomputed `features` table → 404 (this path
-  only covers the same 300×25×1 universe as `quantiles`, not arbitrary series/dates).
+  only covers 300 series × v4's test-date slice, a subset of what `quantiles` covers, not
+  arbitrary series/dates).
 - Model service unreachable, cold, or returns non-2xx → 503, generic message (no upstream
   error details echoed — same rule as the existing global error handler).
 - Model service key misconfigured → indistinguishable from "unreachable" to the client (503);
