@@ -166,7 +166,10 @@ In `server/scripts/load.js`, inside the `if (withQuantiles) { ... }` block (afte
       for (let i = 0; i < flines.length; i += 500) {
         const chunk = flines.slice(i, i + 500).map((l) => {
           const firstComma = l.indexOf(','), secondComma = l.indexOf(',', firstComma + 1), thirdComma = l.indexOf(',', secondComma + 1);
-          return [l.slice(0, firstComma), l.slice(firstComma + 1, secondComma), Number(l.slice(secondComma + 1, thirdComma)), l.slice(thirdComma + 1)];
+          let payload = l.slice(thirdComma + 1);
+          // pandas' to_csv quotes this field (JSON syntax always contains '"') and doubles internal quotes; undo that minimal CSV quoting
+          if (payload.startsWith('"') && payload.endsWith('"')) payload = payload.slice(1, -1).replace(/""/g, '"');
+          return [l.slice(0, firstComma), l.slice(firstComma + 1, secondComma), Number(l.slice(secondComma + 1, thirdComma)), payload];
         });
         const params = []; const values = chunk.map((c, j) => { params.push(c[0], c[1], c[2], c[3]); return `($${j * 4 + 1},$${j * 4 + 2},$${j * 4 + 3},$${j * 4 + 4})`; });
         await pool.query(`INSERT INTO features (series, review_date, horizon, payload) VALUES ${values.join(',')}`, params);
@@ -175,7 +178,7 @@ In `server/scripts/load.js`, inside the `if (withQuantiles) { ... }` block (afte
   }
 ```
 
-This mirrors the existing `quantiles` loading block's chunking style. The manual comma-splitting (rather than a naive `l.split(',')`) is because the `payload` column is itself a JSON string that can legitimately contain commas — everything after the third comma is the payload, verbatim, and Postgres's `jsonb` column will parse it directly as a parameter (no `JSON.parse`/`JSON.stringify` round trip needed, `pg` sends it as text and Postgres casts it).
+This mirrors the existing `quantiles` loading block's chunking style. The manual comma-splitting (rather than a naive `l.split(',')`) is because the `payload` column is itself a JSON string, which legitimately contains commas *and* double-quote characters (JSON syntax always has them) — pandas' `to_csv` therefore always wraps this field in `"..."` and doubles any internal `"`, same as any RFC4180 writer would for a field containing its delimiter or quote character. Everything after the third comma is that one (possibly quoted) field; the `startsWith('"')` branch undoes pandas' quoting before the value reaches Postgres, since a `jsonb` column needs valid JSON text, not CSV-escaped JSON text. No `JSON.parse`/`JSON.stringify` round trip needed beyond that unquoting — `pg` sends the unquoted string as a parameter and Postgres casts it to `jsonb`.
 
 - [ ] **Step 2: Test against the local stack**
 
@@ -323,7 +326,9 @@ test('what-if/live returns 503, never the upstream body, when the model service 
   });
   t.mock.method(global, 'fetch', async () => { throw new Error('ECONNREFUSED'); });
   await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'k' }), async (b) => {
-    assert.equal((await get(b, `/api/whatif/live?${Q}&alpha=0.95&position=5`)).status, 500); // caught by the global handler, generic body
+    const r = await get(b, `/api/whatif/live?${Q}&alpha=0.95&position=5`);
+    assert.equal(r.status, 503); // a network failure is also "model service unavailable", same as a non-2xx response — spec's error-handling rule covers both
+    assert.deepEqual(r.body, { error: 'model service unavailable' });
   });
 });
 
@@ -385,10 +390,13 @@ Then add the route itself, after the existing `/api/whatif` handler (before the 
       const f = await featureRow(req.query);
       if (f.status) return res.status(f.status).json({ error: f.status === 400 ? 'bad request' : 'not found' });
       if (!modelApiUrl) return res.status(503).json({ error: 'model service unavailable' });
-      const r = await fetchWithTimeout(`${modelApiUrl}/quantiles`, {
-        method: 'POST', headers: { 'X-API-Key': modelApiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ features: f.payload }),
-      }, 65_000);
+      let r;
+      try {
+        r = await fetchWithTimeout(`${modelApiUrl}/quantiles`, {
+          method: 'POST', headers: { 'X-API-Key': modelApiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ features: f.payload }),
+        }, 65_000);
+      } catch (e) { return res.status(503).json({ error: 'model service unavailable' }); } // network failure/timeout is also "unavailable", same as a non-2xx response
       if (!r.ok) return res.status(503).json({ error: 'model service unavailable' });
       const body = await r.json();
       const level = Number(body.quantiles[`q${Math.round(alpha * 100)}`]);
