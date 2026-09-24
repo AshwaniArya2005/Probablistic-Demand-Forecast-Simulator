@@ -22,10 +22,19 @@ async function serve(app, fn) {
   const base = `http://127.0.0.1:${server.address().port}`;
   try { return await fn(base); } finally { await new Promise((resolve) => server.close(resolve)); }
 }
-const get = async (base, path) => {
-  const r = await fetch(base + path);
-  return { status: r.status, body: await r.json(), headers: r.headers };
-};
+// uses node:http rather than global fetch, so tests that mock global.fetch (the app's outbound model-service call) don't also intercept this
+const http = require('node:http');
+const get = (base, path) => new Promise((resolve, reject) => {
+  http.get(base + path, (res) => {
+    let data = '';
+    res.on('data', (c) => { data += c; });
+    res.on('end', () => resolve({
+      status: res.statusCode,
+      body: JSON.parse(data),
+      headers: { get: (k) => res.headers[k.toLowerCase()] ?? null },
+    }));
+  }).on('error', reject);
+});
 const mk = (db, extra = {}) => createApp({ db, expectedDataVersion: EXPECTED, ...extra });
 
 test('GET /health returns 200 with the version and calls no dependency', async () => {
@@ -172,6 +181,58 @@ test('what-if input validation and missing rows', async () => {
     const r = await get(b, `/api/quantiles?${Q}`);
     assert.equal(r.status, 200);
     assert.equal(r.body.quantiles.q90, 9.5);
+  });
+});
+
+// ---- live inference: proxies to the model service, never leaks its key or its errors ----
+const frow = (payload = { mean_28: 2.0 }) => fakeDb({
+  'FROM quantiles': (p) => (p[0] === 'FOODS_3_090_CA_3_evaluation' ? [ROW] : []),
+  'FROM features': (p) => (p[0] === 'FOODS_3_090_CA_3_evaluation' ? [{ payload }] : []),
+});
+
+test('what-if/live proxies to the model service and applies the same order-quantity math', async (t) => {
+  t.mock.method(global, 'fetch', async (url, opts) => {
+    assert.equal(url, 'https://model.example.com/quantiles');
+    assert.equal(opts.headers['X-API-Key'], 'test-model-key');
+    assert.deepEqual(JSON.parse(opts.body), { features: { mean_28: 2.0 } });
+    return { ok: true, json: async () => ({ horizon: 10, quantiles: { q10: 0, q50: 4, q80: 8, q90: 9.5, q95: 12.01, q99: 15.1 } }) };
+  });
+  await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'test-model-key' }), async (b) => {
+    const r = await get(b, `/api/whatif/live?${Q}&alpha=0.95&position=5`);
+    assert.equal(r.status, 200);
+    assert.equal(r.body.order_up_to, 13); // q95 12.01 -> ceil 13, same ceilUnits rule as the precomputed path
+    assert.equal(r.body.order_quantity, 8);
+    assert.equal(r.body.risk, undefined); // live path doesn't repeat the risk framing
+  });
+});
+
+test('what-if/live returns 503, never the upstream body, when the model service errors or is unreachable', async (t) => {
+  t.mock.method(global, 'fetch', async () => ({ ok: false, status: 500, json: async () => ({ detail: 'internal', secret: 'leak-me' }) }));
+  await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'k' }), async (b) => {
+    const r = await get(b, `/api/whatif/live?${Q}&alpha=0.95&position=5`);
+    assert.equal(r.status, 503);
+    assert.deepEqual(r.body, { error: 'model service unavailable' });
+  });
+  t.mock.method(global, 'fetch', async () => { throw new Error('ECONNREFUSED'); });
+  await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'k' }), async (b) => {
+    const r = await get(b, `/api/whatif/live?${Q}&alpha=0.95&position=5`);
+    assert.equal(r.status, 503); // a network failure is also "model service unavailable", same as a non-2xx response — spec's error-handling rule covers both
+    assert.deepEqual(r.body, { error: 'model service unavailable' });
+  });
+});
+
+test('what-if/live is 404 when there is no stored feature row for that series/date/horizon (outside v4\'s date slice)', async (t) => {
+  t.mock.method(global, 'fetch', async () => { throw new Error('must not be called'); });
+  await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'k' }), async (b) => {
+    const r = await get(b, '/api/whatif/live?series=OTHER_1&date=2016-05-08&horizon=10&alpha=0.9&position=1');
+    assert.equal(r.status, 404);
+  });
+});
+
+test('what-if/live is 503 without ever calling fetch when no model service is configured', async (t) => {
+  t.mock.method(global, 'fetch', async () => { throw new Error('must not be called'); });
+  await serve(mk(frow()), async (b) => { // no modelApiUrl passed
+    assert.deepEqual((await get(b, `/api/whatif/live?${Q}&alpha=0.95&position=5`)).body, { error: 'model service unavailable' });
   });
 });
 

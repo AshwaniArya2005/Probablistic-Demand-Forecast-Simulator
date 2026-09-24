@@ -21,7 +21,7 @@ function riskBand(position, q50, q90, q99, zeroRun) {
 const parseAlpha = (s) => { const a = Number(s); return Object.hasOwn(ALPHA_COL, a) ? a : null; };
 const parsePosition = (s) => (/^\d{1,9}$/.test(String(s)) ? Number(s) : null);
 
-function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new Date(), limits = {} }) {
+function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new Date(), limits = {}, modelApiUrl = '', modelApiKey = '' } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -78,6 +78,20 @@ function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new D
     return r.rows.length ? { row: r.rows[0], h } : { status: 404 };
   }
 
+  async function featureRow(query) {
+    const { series, date, horizon } = query;
+    const h = Number(horizon);
+    if (!/^[A-Za-z0-9_]{1,60}$/.test(String(series)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !HORIZONS.has(h)) return { status: 400 };
+    const r = await db.query('SELECT payload FROM features WHERE series = $1 AND review_date = $2 AND horizon = $3', [series, date, h]);
+    return r.rows.length ? { payload: r.rows[0].payload, h } : { status: 404 };
+  }
+
+  async function fetchWithTimeout(url, opts, ms) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms);
+    try { return await fetch(url, { ...opts, signal: ctl.signal }); } finally { clearTimeout(timer); }
+  }
+
   app.get('/api/quantiles', async (req, res, next) => {
     try {
       const q = await quantileRow(req.query);
@@ -102,6 +116,34 @@ function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new D
         order_quantity: Math.max(0, orderUpTo - position),
         risk: riskBand(position, Number(q.row.q50), Number(q.row.q90), Number(q.row.q99), q.row.zero_run),
         tail_note: alpha === 0.99 ? 'the 0.99 level is the costly tail: it buys little extra service for a lot of extra inventory' : undefined,
+      });
+    } catch (e) { return next(e); }
+  });
+
+  // live inference: the same order-quantity math as /api/whatif, but the quantile comes from a real model call, not a stored value.
+  // Only covers the (series, date) pairs the v4 model actually served (docs/superpowers/specs/2026-09-23-live-per-series-inference-design.md).
+  app.get('/api/whatif/live', async (req, res, next) => {
+    try {
+      const alpha = parseAlpha(req.query.alpha);
+      const position = parsePosition(req.query.position);
+      if (alpha === null || position === null) return res.status(400).json({ error: 'bad request' });
+      const f = await featureRow(req.query);
+      if (f.status) return res.status(f.status).json({ error: f.status === 400 ? 'bad request' : 'not found' });
+      if (!modelApiUrl) return res.status(503).json({ error: 'model service unavailable' });
+      let r;
+      try {
+        r = await fetchWithTimeout(`${modelApiUrl}/quantiles`, {
+          method: 'POST', headers: { 'X-API-Key': modelApiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ features: f.payload }),
+        }, 65_000);
+      } catch (e) { return res.status(503).json({ error: 'model service unavailable' }); } // network failure/timeout is also "unavailable", same as a non-2xx response
+      if (!r.ok) return res.status(503).json({ error: 'model service unavailable' });
+      const body = await r.json();
+      const level = Number(body.quantiles[`q${Math.round(alpha * 100)}`]);
+      const orderUpTo = ceilUnits(level);
+      return res.json({
+        series: req.query.series, date: req.query.date, horizon: f.h, alpha, quantile: level,
+        order_up_to: orderUpTo, position, order_quantity: Math.max(0, orderUpTo - position),
       });
     } catch (e) { return next(e); }
   });
