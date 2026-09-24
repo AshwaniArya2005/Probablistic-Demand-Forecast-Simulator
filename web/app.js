@@ -6,7 +6,7 @@ const state = { data: null, live: false, scenario: 'primary' };
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) { if (k === 'class') el.className = v; else if (typeof v === 'function') el[k] = v; else if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v === true ? '' : v); }
-  for (const kid of kids.flat()) if (kid !== null && kid !== undefined && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  for (const kid of kids.flat(Infinity)) if (kid !== null && kid !== undefined && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
   return el;
 };
 const $ = (id) => document.getElementById(id);
@@ -68,6 +68,17 @@ function renderScenarioNav() {
   nav.replaceChildren(...state.data.scenarios.map((s) => h('button', { type: 'button', 'aria-pressed': String(s.id === state.scenario), onclick: () => { state.scenario = s.id; renderScenario(); renderScenarioNav(); } }, s.title)));
 }
 
+const stat = (big, label) => h('div', { class: 'stat' }, h('div', { class: 'stat-num' }, big), h('div', { class: 'stat-label' }, label));
+function statCards(s) {
+  const b3a = s.comparison_comparator_anchored.find((r) => r.comparator.startsWith('B3a'));
+  const b2 = s.comparison_comparator_anchored.find((r) => r.comparator.startsWith('B2'));
+  const cards = [];
+  if (b3a) cards.push(stat(b3a['mean over matched'], 'less inventory than the fair benchmark (B3a), at matched fill rate'));
+  if (b2) cards.push(stat(b2['mean over matched'], 'less inventory than the pre-specified point policy (B2)'));
+  if (s.expected_outcomes) cards.push(stat(`${s.expected_outcomes.filter((e) => e.held).length}/${s.expected_outcomes.length}`, 'predictions held, committed before this run'));
+  return cards.length ? h('div', { class: 'stats' }, cards) : null;
+}
+
 function renderScenario() {
   const s = state.data.scenarios.find((x) => x.id === state.scenario) || state.data.scenarios[0];
   const L = state.data.labels;
@@ -76,19 +87,21 @@ function renderScenario() {
   const cols = ['comparator', 'alpha 0.8', 'alpha 0.9', 'alpha 0.95', 'alpha 0.99', 'settings matched', 'mean over matched', '95% interval (items)'];
   const parts = [
     h('h2', {}, s.title), h('p', { class: 'muted' }, s.blurb),
+    statCards(s),
     h('div', { class: 'card lead' },
       h('h3', {}, 'Against B3a, the fair benchmark: inventory the quantile policy saves at the same fill rate'),
       h('p', { class: 'label' }, state.data.framing),
-      h('p', {}, h('strong', {}, 'Statistic: comparator-anchored. '), L['comparator-anchored'] + '.'),
-      table(b3aRows(s.comparison_comparator_anchored), { cols, tailCol: 'alpha 0.99' }),
-      h('p', {}, h('strong', {}, 'Statistic: quantile-anchored (pre-registered). '), L['quantile-anchored'] + '. "n/a" means the comparator never reaches that fill rate (no extrapolation).'),
-      table(b3aRows(s.comparison_quantile_anchored), { cols, tailCol: 'alpha 0.99' }),
+      h('details', {}, h('summary', {}, 'Full comparison tables, by service level'),
+        h('p', {}, h('strong', {}, 'Statistic: comparator-anchored. '), L['comparator-anchored'] + '.'),
+        table(b3aRows(s.comparison_comparator_anchored), { cols, tailCol: 'alpha 0.99' }),
+        h('p', {}, h('strong', {}, 'Statistic: quantile-anchored (pre-registered). '), L['quantile-anchored'] + '. "n/a" means the comparator never reaches that fill rate (no extrapolation).'),
+        table(b3aRows(s.comparison_quantile_anchored), { cols, tailCol: 'alpha 0.99' })),
       h('p', { class: 'label' }, state.data.caveats[0], ' ', state.data.caveats[1])),
     h('div', { class: 'card' }, h('h3', {}, 'Inventory against fill rate'), chart(s.curves)),
-    h('div', { class: 'card' }, h('h3', {}, 'Achieved cycle service minus the target alpha'), table(s.service_gap, { cols: Object.keys(s.service_gap[0]), tailCol: 'alpha 0.99' }),
+    h('details', { class: 'card' }, h('summary', {}, 'Achieved cycle service minus the target alpha'), table(s.service_gap, { cols: Object.keys(s.service_gap[0]), tailCol: 'alpha 0.99' }),
       s.by_period ? h('details', {}, h('summary', {}, 'Reduction by period (comparator-anchored)'), h('h3', {}, 'Holiday peak'), table(s.by_period.peak), h('h3', {}, 'Rest period'), table(s.by_period.rest)) : null),
     h('details', { class: 'card' }, h('summary', {}, 'By velocity segment (comparator-anchored)'), ['high', 'mid', 'low'].map((k) => [h('h3', {}, k), table(s.by_segment[k])])),
-    h('div', { class: 'card' }, h('h3', {}, 'Cost'), h('p', {}, state.data.caveats[2]), table(s.cost)),
+    h('details', { class: 'card' }, h('summary', {}, 'Cost'), h('p', {}, state.data.caveats[2]), table(s.cost)),
     s.expected_outcomes ? h('div', { class: 'card' }, h('h3', {}, 'Expected outcomes written before this run'), h('ul', {}, s.expected_outcomes.map((e) => h('li', { class: e.held ? 'held' : 'nothold' }, (e.held ? 'Held: ' : 'Did not hold: ') + e.text)))) : null,
     s.predictions ? h('div', { class: 'card' }, h('h3', {}, 'Predictions committed before the primary run'), h('ul', {}, s.predictions.map((t) => h('li', {}, t.replace(/\*\*/g, ''))))) : null];
   box.replaceChildren(...parts.filter(Boolean));
@@ -119,9 +132,10 @@ function renderCaveats() {
 
 function renderWhatIf() {
   const live = state.live;
+  const seriesList = h('datalist', { id: 'series-list' }, (state.seriesList || []).map((s) => h('option', { value: s })));
   const f = h('form', { id: 'wf' },
-    h('label', {}, 'Series id', h('input', { name: 'series', placeholder: 'FOODS_3_090_CA_3_evaluation', disabled: !live, required: true })),
-    h('label', {}, 'Review date (Sunday)', h('input', { name: 'date', type: 'date', disabled: !live, required: true })),
+    h('label', {}, 'Series id', h('input', { name: 'series', list: 'series-list', placeholder: 'FOODS_3_090_CA_3_evaluation', disabled: !live, required: true }), seriesList),
+    h('label', {}, 'Review date (Sunday)', h('input', { name: 'date', type: 'date', min: '2015-11-22', max: '2016-05-08', disabled: !live, required: true })),
     h('label', {}, 'Horizon (days)', h('select', { name: 'horizon', disabled: !live }, h('option', { value: '10' }, '10'), h('option', { value: '14' }, '14'))),
     h('label', {}, 'Service level', h('select', { name: 'alpha', disabled: !live }, ['0.8', '0.9', '0.95', '0.99'].map((a) => h('option', { value: a }, a === '0.99' ? '0.99 (costly tail)' : a)))),
     h('label', {}, 'Inventory position (units)', h('input', { name: 'position', type: 'number', min: '0', step: '1', value: '0', disabled: !live })),
@@ -143,14 +157,20 @@ function renderWhatIf() {
         finally { liveBtn.disabled = false; }
       } }, 'Verify live');
       const liveOut = h('div', { 'aria-live': 'polite' });
-      out.replaceChildren(...[h('p', {}, `Order-up-to level ceil(q${r.alpha * 100}) = ${r.order_up_to} (q = ${Number(r.quantile).toFixed(2)}); position ${r.position}; `, h('strong', {}, `order ${r.order_quantity} units`), '.'),
+      out.replaceChildren(...[h('p', {}, h('strong', {}, `Order ${r.order_quantity} units.`)),
+        h('p', { class: 'label' }, `Target stock level ${r.order_up_to} units at alpha ${r.alpha} (q = ${Number(r.quantile).toFixed(2)}); you hold ${r.position}.`),
         h('p', {}, 'Risk band: ', h('span', { class: `band ${r.risk.band}` }, r.risk.band), r.risk.overstock ? ' (overstock flag)' : '', ' ', h('span', { class: 'label' }, r.risk.note)),
         r.risk.qualifiers.length ? h('p', { class: 'label' }, 'Qualifiers: ' + r.risk.qualifiers.join('; ')) : null, r.tail_note ? h('p', { class: 'tail' }, r.tail_note) : null,
         live ? liveBtn : null, liveOut].filter(Boolean));
-    } catch (err) { out.replaceChildren(h('p', { class: 'muted' }, 'No stored quantile for that series, date and horizon, or the service is waking up (it can take about a minute). Try again.')); }
+    } catch (err) {
+      const notFound = /HTTP 404/.test(err.message);
+      out.replaceChildren(h('p', { class: 'muted' }, notFound
+        ? 'No stored quantile for that series, date and horizon. Pick a Sunday between 2015-11-22 and 2016-05-08, and a series id from the list (start typing to see matches).'
+        : 'The service did not answer — it may be waking up (a cold start can take about a minute). Try again.'));
+    }
   });
-  $('whatif').replaceChildren(h('h2', { id: 'h-whatif' }, 'Order-quantity what-if'),
-    h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date.')
+  $('whatif').replaceChildren(h('h2', { id: 'h-whatif' }, 'Try it: get an order recommendation'),
+    h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date. Pick a Sunday between 2015-11-22 and 2016-05-08, and a series id from the list.')
       : h('p', { class: 'muted' }, 'Unavailable in snapshot mode. The what-if reads per-series quantile tables from the database, which are not published until the data-use terms of the M5 data are confirmed; it also needs the API to be awake.'), f, out));
 }
 
@@ -181,6 +201,9 @@ async function boot() {
     const payloads = await Promise.all(list.map((s) => getJSON(`${CFG.API_BASE}/api/scenarios/${s.id}`, CFG.TIMEOUT_MS)));
     if (payloads.length) { state.data = { ...state.data, scenarios: payloads }; state.live = true; renderAll(); say('Live: served from the API (precomputed results).', true); }
   } catch (e) { say('The service did not answer in time; showing the recorded snapshot of the same results.'); } finally { clearTimeout(waking); }
+  if (state.live) {
+    try { state.seriesList = await getJSON(`${CFG.API_BASE}/api/series`, CFG.TIMEOUT_MS); renderWhatIf(); } catch (e) { /* the series input still works as free text */ }
+  }
   try {
     const st = await getJSON(`${CFG.API_BASE}/api/status`, CFG.TIMEOUT_MS);
     $('last-checked').textContent = st.last_checked ? `Last checked: ${new Date(st.last_checked).toUTCString()} (${st.ok ? 'up' : 'a check failed'}).` : 'Last checked: no check recorded yet.';

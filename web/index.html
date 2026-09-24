@@ -13,18 +13,28 @@
   <p class="sub">Historical replay on M5 retail data (300 California item-store series), under stated assumptions. <strong>This demo serves precomputed results only</strong>; nothing here runs a live model.</p>
   <p id="banner" class="banner" role="status">Loading…</p>
 </header>
+<section class="hero">
+  <p class="hero-plain">Instead of guessing a single demand number, this model predicts a calibrated range&nbsp;&mdash; and its order recommendations hit their target service level in testing.</p>
+  <p class="hero-precise">10-day quantile forecasts scored 15% lower pinball loss than B3a, the fair benchmark, on a held-out 26-week test window (95% CI on the difference excludes zero).</p>
+</section>
 <div class="layout">
   <nav class="page-nav" aria-label="Page sections">
+    <a href="#whatif">Try it</a>
+    <a href="#how-it-works">How it works</a>
     <a href="#scenario">Results</a>
     <a href="#forecast">Forecast accuracy</a>
-    <a href="#whatif">Order what-if</a>
     <a href="#caveats">How to read this</a>
   </nav>
   <main>
+    <section id="whatif" aria-labelledby="h-whatif"></section>
+    <section id="how-it-works" aria-labelledby="h-how-it-works" class="card">
+      <h2 id="h-how-it-works">How it works</h2>
+      <p>Most demand forecasters predict one number and bolt a safety-stock margin on top of it. This one instead predicts a calibrated range of likely demand directly&nbsp;&mdash; a set of quantiles&nbsp;&mdash; and reads the order quantity straight off that range at whatever service level you target.</p>
+      <p class="label">Model: gradient-boosted trees (XGBoost) trained for multiple quantiles, evaluated with rolling-origin validation and embargoed retraining to avoid leakage. Full write-up: see <a href="#forecast">forecast accuracy</a> and the repository README.</p>
+    </section>
     <nav id="scenarios" aria-label="Scenarios that were run"></nav>
     <section id="scenario"><p class="muted">Loading the recorded results…</p></section>
     <section id="forecast" aria-labelledby="h-forecast"></section>
-    <section id="whatif" aria-labelledby="h-whatif"></section>
     <section id="caveats" aria-labelledby="h-caveats"></section>
   </main>
 </div>
