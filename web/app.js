@@ -131,7 +131,10 @@ function renderCaveats() {
 }
 
 function renderWhatIf() {
-  const live = state.live;
+  // state.live only means the scenario/results API answered; the what-if form also needs at least one
+  // stored series (the per-series quantile tables are held back until the M5 data-use terms are confirmed,
+  // so on this deployment /api/series currently answers with an empty list, not a 404).
+  const live = state.live && Array.isArray(state.seriesList) && state.seriesList.length > 0;
   const seriesList = h('datalist', { id: 'series-list' }, (state.seriesList || []).map((s) => h('option', { value: s })));
   const f = h('form', { id: 'wf' },
     h('label', {}, 'Series id', h('input', { name: 'series', list: 'series-list', placeholder: 'FOODS_3_090_CA_3_evaluation', disabled: !live, required: true }), seriesList),
@@ -171,7 +174,7 @@ function renderWhatIf() {
   });
   $('whatif').replaceChildren(h('h2', { id: 'h-whatif' }, 'Try it: get an order recommendation'),
     h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date. Pick a Sunday between 2015-11-22 and 2016-05-08, and a series id from the list.')
-      : h('p', { class: 'muted' }, 'Unavailable in snapshot mode. The what-if reads per-series quantile tables from the database, which are not published until the data-use terms of the M5 data are confirmed; it also needs the API to be awake.'), f, out));
+      : h('p', { class: 'muted' }, 'Unavailable: the what-if reads per-series quantile tables from the database, which are not published until the data-use terms of the M5 data are confirmed; it also needs the API to be awake.'), f, out));
 }
 
 function renderAll() { renderScenarioNav(); renderScenario(); renderForecast(); renderWhatIf(); renderCaveats(); }
@@ -202,7 +205,7 @@ async function boot() {
     if (payloads.length) { state.data = { ...state.data, scenarios: payloads }; state.live = true; renderAll(); say('Live: served from the API (precomputed results).', true); }
   } catch (e) { say('The service did not answer in time; showing the recorded snapshot of the same results.'); } finally { clearTimeout(waking); }
   if (state.live) {
-    try { state.seriesList = await getJSON(`${CFG.API_BASE}/api/series`, CFG.TIMEOUT_MS); renderWhatIf(); } catch (e) { /* the series input still works as free text */ }
+    try { state.seriesList = await getJSON(`${CFG.API_BASE}/api/series`, CFG.TIMEOUT_MS); renderWhatIf(); } catch (e) { /* stays unavailable: without a confirmed series list there's nothing valid to submit */ }
   }
   try {
     const st = await getJSON(`${CFG.API_BASE}/api/status`, CFG.TIMEOUT_MS);
