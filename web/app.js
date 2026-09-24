@@ -133,9 +133,20 @@ function renderWhatIf() {
     out.replaceChildren(h('p', { class: 'muted' }, 'Looking up the stored quantile…'));
     try {
       const r = await getJSON(`${CFG.API_BASE}/api/whatif?${q}`, CFG.TIMEOUT_MS);
+      const liveBtn = h('button', { class: 'go', type: 'button', onclick: async () => {
+        liveBtn.disabled = true; liveOut.replaceChildren(h('p', { class: 'muted' }, 'Calling the model service live (a cold start can take about a minute)…'));
+        try {
+          const lq = new URLSearchParams({ series: q.get('series'), date: q.get('date'), horizon: q.get('horizon'), alpha: q.get('alpha'), position: q.get('position') });
+          const lr = await getJSON(`${CFG.API_BASE}/api/whatif/live?${lq}`, 65000);
+          liveOut.replaceChildren(h('p', { class: 'label' }, `Live model service: order-up-to ${lr.order_up_to} (q = ${Number(lr.quantile).toFixed(2)}), order ${lr.order_quantity} units — should match the stored value above, since it's the same model called fresh.`));
+        } catch (err) { liveOut.replaceChildren(h('p', { class: 'muted' }, 'The model service did not answer (no stored feature row for this series/date, or it is waking up). Not every date has a live-servable row — only the ones the deployed model version served.')); }
+        finally { liveBtn.disabled = false; }
+      } }, 'Verify live');
+      const liveOut = h('div', { 'aria-live': 'polite' });
       out.replaceChildren(...[h('p', {}, `Order-up-to level ceil(q${r.alpha * 100}) = ${r.order_up_to} (q = ${Number(r.quantile).toFixed(2)}); position ${r.position}; `, h('strong', {}, `order ${r.order_quantity} units`), '.'),
         h('p', {}, 'Risk band: ', h('span', { class: `band ${r.risk.band}` }, r.risk.band), r.risk.overstock ? ' (overstock flag)' : '', ' ', h('span', { class: 'label' }, r.risk.note)),
-        r.risk.qualifiers.length ? h('p', { class: 'label' }, 'Qualifiers: ' + r.risk.qualifiers.join('; ')) : null, r.tail_note ? h('p', { class: 'tail' }, r.tail_note) : null].filter(Boolean));
+        r.risk.qualifiers.length ? h('p', { class: 'label' }, 'Qualifiers: ' + r.risk.qualifiers.join('; ')) : null, r.tail_note ? h('p', { class: 'tail' }, r.tail_note) : null,
+        live ? liveBtn : null, liveOut].filter(Boolean));
     } catch (err) { out.replaceChildren(h('p', { class: 'muted' }, 'No stored quantile for that series, date and horizon, or the service is waking up (it can take about a minute). Try again.')); }
   });
   $('whatif').replaceChildren(h('h2', { id: 'h-whatif' }, 'Order-quantity what-if'),
