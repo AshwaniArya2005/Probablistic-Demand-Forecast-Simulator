@@ -138,7 +138,7 @@ function renderWhatIf() {
   const seriesList = h('datalist', { id: 'series-list' }, (state.seriesList || []).map((s) => h('option', { value: s })));
   const f = h('form', { id: 'wf' },
     h('label', {}, 'Series id', h('input', { name: 'series', list: 'series-list', placeholder: 'FOODS_3_090_CA_3_evaluation', disabled: !live, required: true }), seriesList),
-    h('label', {}, 'Review date (Sunday)', h('input', { name: 'date', type: 'date', min: '2015-11-22', max: '2016-05-08', disabled: !live, required: true })),
+    h('label', {}, 'Review date (Sunday)', h('input', { name: 'date', type: 'date', min: '2015-10-25', max: '2016-05-08', disabled: !live, required: true })),
     h('label', {}, 'Horizon (days)', h('select', { name: 'horizon', disabled: !live }, h('option', { value: '10' }, '10'), h('option', { value: '14' }, '14'))),
     h('label', {}, 'Service level', h('select', { name: 'alpha', disabled: !live }, ['0.8', '0.9', '0.95', '0.99'].map((a) => h('option', { value: a }, a === '0.99' ? '0.99 (costly tail)' : a)))),
     h('label', {}, 'Inventory position (units)', h('input', { name: 'position', type: 'number', min: '0', step: '1', value: '0', disabled: !live })),
@@ -168,12 +168,12 @@ function renderWhatIf() {
     } catch (err) {
       const notFound = /HTTP 404/.test(err.message);
       out.replaceChildren(h('p', { class: 'muted' }, notFound
-        ? 'No stored quantile for that series, date and horizon. Pick a Sunday between 2015-11-22 and 2016-05-08, and a series id from the list (start typing to see matches).'
+        ? 'No stored quantile for that series, date and horizon. Pick a Sunday between 2015-10-25 and 2016-05-08, and a series id from the list (start typing to see matches).'
         : 'The service did not answer — it may be waking up (a cold start can take about a minute). Try again.'));
     }
   });
   $('whatif').replaceChildren(h('h2', { id: 'h-whatif' }, 'Try it: get an order recommendation'),
-    h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date. Pick a Sunday between 2015-11-22 and 2016-05-08, and a series id from the list.')
+    h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date. Pick a Sunday between 2015-10-25 and 2016-05-08, and a series id from the list.')
       : h('p', { class: 'muted' }, 'Unavailable: the what-if reads per-series quantile tables from the database, which are not published until the data-use terms of the M5 data are confirmed; it also needs the API to be awake.'), f, out));
 }
 
