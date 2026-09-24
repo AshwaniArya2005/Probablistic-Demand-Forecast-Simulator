@@ -1,1 +1,2 @@
 * text=auto
+models/serving/* -text
