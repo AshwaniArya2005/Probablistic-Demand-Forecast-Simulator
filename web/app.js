@@ -164,7 +164,10 @@ function renderWhatIf() {
         h('p', { class: 'label' }, `Target stock level ${r.order_up_to} units at alpha ${r.alpha} (q = ${Number(r.quantile).toFixed(2)}); you hold ${r.position}.`),
         h('p', {}, 'Risk band: ', h('span', { class: `band ${r.risk.band}` }, r.risk.band), r.risk.overstock ? ' (overstock flag)' : '', ' ', h('span', { class: 'label' }, r.risk.note)),
         r.risk.qualifiers.length ? h('p', { class: 'label' }, 'Qualifiers: ' + r.risk.qualifiers.join('; ')) : null, r.tail_note ? h('p', { class: 'tail' }, r.tail_note) : null,
-        live ? liveBtn : null, liveOut].filter(Boolean));
+        // the live model service only has the horizon-10 model baked in; horizon 14 can never answer, so don't offer a button that's guaranteed to fail
+        live && r.horizon === 10 ? liveBtn : null,
+        live && r.horizon !== 10 ? h('p', { class: 'label' }, "Verify live isn't available for horizon 14 — the live model service only serves horizon 10.") : null,
+        liveOut].filter(Boolean));
     } catch (err) {
       const notFound = /HTTP 404/.test(err.message);
       out.replaceChildren(h('p', { class: 'muted' }, notFound
