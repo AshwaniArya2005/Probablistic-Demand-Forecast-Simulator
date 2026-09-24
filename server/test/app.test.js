@@ -185,16 +185,16 @@ test('what-if input validation and missing rows', async () => {
 });
 
 // ---- live inference: proxies to the model service, never leaks its key or its errors ----
-const frow = (payload = { mean_28: 2.0 }) => fakeDb({
+const frow = (payload = { mean_28: 2.0 }, model = 'v4_P10') => fakeDb({
   'FROM quantiles': (p) => (p[0] === 'FOODS_3_090_CA_3_evaluation' ? [ROW] : []),
-  'FROM features': (p) => (p[0] === 'FOODS_3_090_CA_3_evaluation' ? [{ payload }] : []),
+  'FROM features': (p) => (p[0] === 'FOODS_3_090_CA_3_evaluation' ? [{ payload, model }] : []),
 });
 
 test('what-if/live proxies to the model service and applies the same order-quantity math', async (t) => {
   t.mock.method(global, 'fetch', async (url, opts) => {
     assert.equal(url, 'https://model.example.com/quantiles');
     assert.equal(opts.headers['X-API-Key'], 'test-model-key');
-    assert.deepEqual(JSON.parse(opts.body), { features: { mean_28: 2.0 } });
+    assert.deepEqual(JSON.parse(opts.body), { features: { mean_28: 2.0 }, model: 'v4_P10' });
     return { ok: true, json: async () => ({ horizon: 10, quantiles: { q10: 0, q50: 4, q80: 8, q90: 9.5, q95: 12.01, q99: 15.1 } }) };
   });
   await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'test-model-key' }), async (b) => {
@@ -221,7 +221,7 @@ test('what-if/live returns 503, never the upstream body, when the model service 
   });
 });
 
-test('what-if/live is 404 when there is no stored feature row for that series/date/horizon (outside v4\'s date slice)', async (t) => {
+test('what-if/live is 404 when there is no stored feature row for that series/date/horizon', async (t) => {
   t.mock.method(global, 'fetch', async () => { throw new Error('must not be called'); });
   await serve(mk(frow(), { modelApiUrl: 'https://model.example.com', modelApiKey: 'k' }), async (b) => {
     const r = await get(b, '/api/whatif/live?series=OTHER_1&date=2016-05-08&horizon=10&alpha=0.9&position=1');

@@ -15,8 +15,14 @@ def sha256(path):
 
 
 def write_lock(model_dir, names, version, out):
-    """lock file: {version, files: {file name: sha256}} for the given model file names"""
-    lock = {"version": version, "files": {n: sha256(Path(model_dir) / n) for n in sorted(names)}}
+    """lock file: {version, files: {file name: sha256}}. Merges into any existing lock at `out` (so exporting
+    several model versions into the same directory accumulates hashes instead of each call wiping the last)."""
+    existing = {}
+    try:
+        existing = json.loads(Path(out).read_text(encoding="utf-8")).get("files", {})
+    except (OSError, ValueError):
+        pass
+    lock = {"version": version, "files": {**existing, **{n: sha256(Path(model_dir) / n) for n in sorted(names)}}}
     Path(out).write_text(json.dumps(lock, indent=1), encoding="utf-8")
     return lock
 

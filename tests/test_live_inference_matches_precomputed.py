@@ -1,5 +1,6 @@
 """Live inference (api/serving.py, called with a stored features.csv row) must reproduce the value already
-stored in quantiles.csv for the same (series, date, horizon) — they're the same v4 model, so they must agree.
+stored in quantiles.csv for the same (series, date, horizon) — each row names the model version that served it
+(features.csv's `model` column), and that's the same version quantiles.csv's value came from, so they must agree.
 Needs demo_private/features.csv and demo_private/quantiles.csv (git-ignored, local pipeline output); skipped otherwise."""
 import json
 from pathlib import Path
@@ -20,10 +21,14 @@ def test_live_model_output_matches_the_stored_quantile_for_the_same_row():
     feats = pd.read_csv(FEATURES)
     quant = pd.read_csv(QUANTILES)
     merged = feats.merge(quant, on=["series", "review_date", "horizon"], how="inner")
-    assert len(merged) > 0, "no overlap between features.csv and quantiles.csv rows — check versions.use_dates(4) filtering"
-    booster, meta = serving.load(ROOT / "models" / "serving", "v4_P10")
-    sample = merged.sample(n=min(20, len(merged)), random_state=0)
+    assert len(merged) > 0, "no overlap between features.csv and quantiles.csv rows — check versions.use_dates() filtering"
+    assert set(merged["model"]) == {"v1_P10", "v2_P10", "v3_P10", "v4_P10"}, "expected every model version to be covered"
+    models = {}
+    sample = merged.groupby("model", group_keys=False)[merged.columns].apply(lambda g: g.sample(n=min(5, len(g)), random_state=0))
     for _, row in sample.iterrows():
+        if row["model"] not in models:
+            models[row["model"]] = serving.load(ROOT / "models" / "serving", row["model"])
+        booster, meta = models[row["model"]]
         got = serving.predict_quantiles(booster, meta, [json.loads(row["payload"])])[0]
         want = [row.q10, row.q50, row.q80, row.q90, row.q95, row.q99]
-        assert list(got) == pytest.approx(want, abs=1e-3), (row["series"], row["review_date"])
+        assert list(got) == pytest.approx(want, abs=1e-3), (row["series"], row["review_date"], row["model"])

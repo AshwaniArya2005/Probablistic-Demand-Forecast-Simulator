@@ -87,8 +87,8 @@ function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new D
     const { series, date, horizon } = query;
     const h = Number(horizon);
     if (!/^[A-Za-z0-9_]{1,60}$/.test(String(series)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !HORIZONS.has(h)) return { status: 400 };
-    const r = await db.query('SELECT payload FROM features WHERE series = $1 AND review_date = $2 AND horizon = $3', [series, date, h]);
-    return r.rows.length ? { payload: r.rows[0].payload, h } : { status: 404 };
+    const r = await db.query('SELECT payload, model FROM features WHERE series = $1 AND review_date = $2 AND horizon = $3', [series, date, h]);
+    return r.rows.length ? { payload: r.rows[0].payload, model: r.rows[0].model, h } : { status: 404 };
   }
 
   async function fetchWithTimeout(url, opts, ms) {
@@ -126,7 +126,7 @@ function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new D
   });
 
   // live inference: the same order-quantity math as /api/whatif, but the quantile comes from a real model call, not a stored value.
-  // Only covers the (series, date) pairs the v4 model actually served (docs/superpowers/specs/2026-09-23-live-per-series-inference-design.md).
+  // Covers every test-window review date; `model` (stored per row, from versions.use_dates) picks which version answers it.
   app.get('/api/whatif/live', async (req, res, next) => {
     try {
       const alpha = parseAlpha(req.query.alpha);
@@ -139,7 +139,7 @@ function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new D
       try {
         r = await fetchWithTimeout(`${modelApiUrl}/quantiles`, {
           method: 'POST', headers: { 'X-API-Key': modelApiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ features: f.payload }),
+          body: JSON.stringify({ features: f.payload, model: f.model }),
         }, 65_000);
       } catch (e) { return res.status(503).json({ error: 'model service unavailable' }); } // network failure/timeout is also "unavailable", same as a non-2xx response
       if (!r.ok) return res.status(503).json({ error: 'model service unavailable' });

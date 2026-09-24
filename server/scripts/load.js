@@ -42,14 +42,14 @@ if (withQuantiles && !local && process.env.ALLOW_PUBLIC_QUANTILES !== 'confirmed
       await pool.query('DELETE FROM features');
       for (let i = 0; i < flines.length; i += 500) {
         const chunk = flines.slice(i, i + 500).map((l) => {
-          const firstComma = l.indexOf(','), secondComma = l.indexOf(',', firstComma + 1), thirdComma = l.indexOf(',', secondComma + 1);
-          let payload = l.slice(thirdComma + 1);
+          const c1 = l.indexOf(','), c2 = l.indexOf(',', c1 + 1), c3 = l.indexOf(',', c2 + 1), c4 = l.indexOf(',', c3 + 1);
+          let payload = l.slice(c4 + 1);
           // pandas' to_csv quotes this field (JSON syntax always contains '"') and doubles internal quotes; undo that minimal CSV quoting
           if (payload.startsWith('"') && payload.endsWith('"')) payload = payload.slice(1, -1).replace(/""/g, '"');
-          return [l.slice(0, firstComma), l.slice(firstComma + 1, secondComma), Number(l.slice(secondComma + 1, thirdComma)), payload];
+          return [l.slice(0, c1), l.slice(c1 + 1, c2), Number(l.slice(c2 + 1, c3)), l.slice(c3 + 1, c4), payload];
         });
-        const params = []; const values = chunk.map((c, j) => { params.push(c[0], c[1], c[2], c[3]); return `($${j * 4 + 1},$${j * 4 + 2},$${j * 4 + 3},$${j * 4 + 4})`; });
-        await pool.query(`INSERT INTO features (series, review_date, horizon, payload) VALUES ${values.join(',')}`, params);
+        const params = []; const values = chunk.map((c, j) => { params.push(c[0], c[1], c[2], c[3], c[4]); return `($${j * 5 + 1},$${j * 5 + 2},$${j * 5 + 3},$${j * 5 + 4},$${j * 5 + 5})`; });
+        await pool.query(`INSERT INTO features (series, review_date, horizon, model, payload) VALUES ${values.join(',')}`, params);
       }
     }
   }

@@ -128,19 +128,25 @@ def quantiles():
 
 
 def features():
+    """One row per (series, review_date) for every review date in the test window, tagged with the model version
+    that actually serves it (versions.use_dates(v)), so live inference can cover every date, not just v4's."""
     import versions
-    meta = json.loads((ROOT / "models" / "serving" / "v4_P10.meta.json").read_text(encoding="utf-8"))
-    cols = meta["columns"]
-    dates = versions.use_dates(4)
-    feats = pd.read_parquet(PROCESSED / "features.parquet", columns=["id", "date", *cols])
-    feats = feats[feats.date.isin(dates)]
-    out = pd.DataFrame({
-        "series": feats["id"], "review_date": feats["date"].dt.strftime("%Y-%m-%d"), "horizon": 10,
-        "payload": feats[cols].apply(lambda r: json.dumps({c: (None if pd.isna(v) else float(v)) for c, v in r.items()}), axis=1),
-    })
+    rows = []
+    for v in (1, 2, 3, 4):
+        name = f"v{v}_P10"
+        meta = json.loads((ROOT / "models" / "serving" / f"{name}.meta.json").read_text(encoding="utf-8"))
+        cols = meta["columns"]
+        dates = versions.use_dates(v)
+        feats = pd.read_parquet(PROCESSED / "features.parquet", columns=["id", "date", *cols])
+        feats = feats[feats.date.isin(dates)]
+        rows.append(pd.DataFrame({
+            "series": feats["id"], "review_date": feats["date"].dt.strftime("%Y-%m-%d"), "horizon": 10, "model": name,
+            "payload": feats[cols].apply(lambda r: json.dumps({c: (None if pd.isna(v) else float(v)) for c, v in r.items()}), axis=1),
+        }))
+    out = pd.concat(rows, ignore_index=True)
     (ROOT / "demo_private").mkdir(exist_ok=True)
     out.to_csv(ROOT / "demo_private" / "features.csv", index=False)
-    print("wrote demo_private/features.csv:", len(out), "rows (git-ignored; do not publish)")
+    print("wrote demo_private/features.csv:", len(out), "rows across", len(rows), "model versions (git-ignored; do not publish)")
 
 
 if __name__ == "__main__":
