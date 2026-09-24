@@ -246,3 +246,10 @@ test('scenarios are read from the database and only listed ids are returned', as
     assert.equal((await get(b, '/api/scenarios/BAD%20ID')).status, 400);
   });
 });
+
+test('GET /api/series lists distinct series ids for the what-if form', async () => {
+  const db = fakeDb({ 'DISTINCT series': () => [{ series: 'FOODS_3_090_CA_3_evaluation' }, { series: 'HOBBIES_1_001_CA_1_evaluation' }] });
+  await serve(mk(db), async (b) => {
+    assert.deepEqual((await get(b, '/api/series')).body, ['FOODS_3_090_CA_3_evaluation', 'HOBBIES_1_001_CA_1_evaluation']);
+  });
+});

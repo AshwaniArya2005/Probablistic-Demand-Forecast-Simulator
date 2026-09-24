@@ -70,6 +70,11 @@ function createApp({ db, expectedDataVersion, corsOrigin = '', now = () => new D
     } catch (e) { return next(e); }
   });
 
+  // the fixed set of series ids that have a stored quantile row (for the what-if form's guard rail, not paginated: ~300 rows)
+  app.get('/api/series', async (req, res, next) => {
+    try { res.json((await db.query('SELECT DISTINCT series FROM quantiles ORDER BY series')).rows.map((r) => r.series)); } catch (e) { return next(e); }
+  });
+
   async function quantileRow(query) {
     const { series, date, horizon } = query;
     const h = Number(horizon);
