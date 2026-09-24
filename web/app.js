@@ -2,6 +2,8 @@
 // Static dashboard: renders the recorded snapshot at once, then swaps to live data from the Express API when it answers (cold-start plan, docs/design.md Phase 11).
 const CFG = window.DEMO_CONFIG || { API_BASE: '', TIMEOUT_MS: 8000, WAKING_AFTER_MS: 3000 };
 const state = { data: null, live: false, scenario: 'primary' };
+// the only review date the live model service has a stored feature row for, across all 300 series (v4's serving window contains one Sunday)
+const LIVE_DATE = '2016-05-08';
 
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
@@ -164,9 +166,10 @@ function renderWhatIf() {
         h('p', { class: 'label' }, `Target stock level ${r.order_up_to} units at alpha ${r.alpha} (q = ${Number(r.quantile).toFixed(2)}); you hold ${r.position}.`),
         h('p', {}, 'Risk band: ', h('span', { class: `band ${r.risk.band}` }, r.risk.band), r.risk.overstock ? ' (overstock flag)' : '', ' ', h('span', { class: 'label' }, r.risk.note)),
         r.risk.qualifiers.length ? h('p', { class: 'label' }, 'Qualifiers: ' + r.risk.qualifiers.join('; ')) : null, r.tail_note ? h('p', { class: 'tail' }, r.tail_note) : null,
-        // the live model service only has the horizon-10 model baked in; horizon 14 can never answer, so don't offer a button that's guaranteed to fail
-        live && r.horizon === 10 ? liveBtn : null,
-        live && r.horizon !== 10 ? h('p', { class: 'label' }, "Verify live isn't available for horizon 14 — the live model service only serves horizon 10.") : null,
+        // the live model service only has the horizon-10 model baked in, and its stored feature rows cover exactly one review
+        // date (2016-05-08, the last date v4 served) - anything else can never answer, so don't offer a button that's guaranteed to fail
+        live && r.horizon === 10 && r.date === LIVE_DATE ? liveBtn : null,
+        live && (r.horizon !== 10 || r.date !== LIVE_DATE) ? h('p', { class: 'label' }, `Verify live only works for horizon 10 and review date ${LIVE_DATE} — the only row the live model service has stored.`) : null,
         liveOut].filter(Boolean));
     } catch (err) {
       const notFound = /HTTP 404/.test(err.message);
@@ -176,7 +179,7 @@ function renderWhatIf() {
     }
   });
   $('whatif').replaceChildren(h('h2', { id: 'h-whatif' }, 'Try it: get an order recommendation'),
-    h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date. Pick a Sunday between 2015-10-25 and 2016-05-08, and a series id from the list.')
+    h('div', { class: 'card' }, live ? h('p', {}, 'Order quantity = max(0, ceil(q) - inventory position), computed from the stored quantile of a precomputed review date. Pick a Sunday between 2015-10-25 and 2016-05-08, and a series id from the list. ', h('span', { class: 'label' }, `Verify live works for any series, but only review date ${LIVE_DATE} and horizon 10.`))
       : h('p', { class: 'muted' }, 'Unavailable: the what-if reads per-series quantile tables from the database, which are not published until the data-use terms of the M5 data are confirmed; it also needs the API to be awake.'), f, out));
 }
 
