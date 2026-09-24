@@ -138,7 +138,7 @@ function renderWhatIf() {
   const seriesList = h('datalist', { id: 'series-list' }, (state.seriesList || []).map((s) => h('option', { value: s })));
   const f = h('form', { id: 'wf' },
     h('label', {}, 'Series id', h('input', { name: 'series', list: 'series-list', placeholder: 'FOODS_3_090_CA_3_evaluation', disabled: !live, required: true }), seriesList),
-    h('label', {}, 'Review date (Sunday)', h('input', { name: 'date', type: 'date', min: '2015-10-25', max: '2016-05-08', disabled: !live, required: true })),
+    h('label', {}, 'Review date (Sunday)', h('input', { name: 'date', type: 'date', min: '2015-10-25', max: '2016-05-08', step: '7', disabled: !live, required: true })),
     h('label', {}, 'Horizon (days)', h('select', { name: 'horizon', disabled: !live }, h('option', { value: '10' }, '10'), h('option', { value: '14' }, '14'))),
     h('label', {}, 'Service level', h('select', { name: 'alpha', disabled: !live }, ['0.8', '0.9', '0.95', '0.99'].map((a) => h('option', { value: a }, a === '0.99' ? '0.99 (costly tail)' : a)))),
     h('label', {}, 'Inventory position (units)', h('input', { name: 'position', type: 'number', min: '0', step: '1', value: '0', disabled: !live })),
