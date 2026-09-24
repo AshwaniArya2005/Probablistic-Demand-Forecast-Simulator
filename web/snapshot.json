@@ -1,6 +1,6 @@
 {
  "data_version": "v1-2026-09-21",
- "built": "2026-09-22",
+ "built": "2026-09-24",
  "framing": "Every comparison leads with B3a, the post-hoc benchmark that keeps the same point forecast and takes its quantiles from empirical residuals: it is the fair benchmark. B2 is the pre-specified normal-sigma point policy (its constant-variance assumption failed the Phase 9 check for high-velocity series).",
  "labels": {
   "comparator-anchored": "the quantile policy's inventory interpolated at each comparator setting's own fill rate",
@@ -3314,6 +3314,25 @@
    }
   ],
   "against_b3a": "Quantile model against B3a: difference in mean scaled pinball -0.0410, 95% interval [-0.0504, -0.0337] over items; lower in 4 of 4 cells (versions)."
+ },
+ "explanations": {
+  "source": "docs/results/phase8_explanations_tuning.md",
+  "note": "Exact TreeSHAP contributions from a tuning fold (F2, P=14), not the live test window: explain_rows refuses test-window origins, the same touch-log discipline as everything else here. These are typical drivers of the validated model in general, not a live explanation of the specific order above — associations in the model, not causal effects.",
+  "themes": [
+   { "theme": "zero-sales stretches", "p50": 0.252, "p90": 0.527 },
+   { "theme": "recent sales level", "p50": 0.25, "p90": 0.107 },
+   { "theme": "same period last year", "p50": 0.179, "p90": 0.242 },
+   { "theme": "series age", "p50": 0.16, "p90": 0.05 },
+   { "theme": "calendar", "p50": 0.066, "p90": 0.02 },
+   { "theme": "price level", "p50": 0.053, "p90": 0.04 },
+   { "theme": "price vs usual", "p50": 0.027, "p90": 0.011 },
+   { "theme": "events", "p50": 0.011, "p90": 0.003 }
+  ],
+  "examples": [
+   { "series": "FOODS_2_380_CA_1_evaluation", "segment": "high velocity", "text": "P50 forecast 29.6 units (typical 27.0): recent sales level +2.3, price level +1.1, series age −1.1." },
+   { "series": "FOODS_3_724_CA_2_evaluation", "segment": "mid velocity", "text": "P50 forecast 9.2 units (typical 8.1): zero-sales stretches +0.9, recent sales level +0.7, same period last year +0.4." },
+   { "series": "HOBBIES_1_092_CA_2_evaluation", "segment": "low velocity", "text": "P50 forecast 3.1 units (typical 3.1): zero-sales stretches +0.4, same period last year −0.3, calendar −0.1." }
+  ]
  },
  "null_tests": {
   "test": [

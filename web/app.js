@@ -64,6 +64,36 @@ function chart(curves) {
   return h('div', {}, svg, legend);
 }
 
+// ---------- chart: typical share of the forecast explained by each theme (TreeSHAP, tuning fold) ----------
+function explainChart(themes) {
+  const barH = 14, pairGap = 2, groupGap = 12, groupH = barH * 2 + pairGap + groupGap;
+  const W = 640, m = { l: 150, r: 16, t: 10, b: 26 };
+  const H = m.t + themes.length * groupH + m.b;
+  const xMax = Math.max(...themes.flatMap((t) => [t.p50, t.p90])) * 1.08;
+  const X = (v) => m.l + (v / xMax) * (W - m.l - m.r);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Typical share of the absolute forecast contribution by theme, for the P50 and P90 quantiles');
+  const add = (tag, attrs, text) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (text) e.textContent = text; svg.append(e); return e; };
+  add('line', { x1: m.l, y1: m.t, x2: m.l, y2: H - m.b, stroke: 'currentColor', opacity: 0.4 });
+  for (const v of [0, 0.25, 0.5].filter((v) => v <= xMax)) {
+    const x = X(v);
+    add('line', { x1: x, y1: m.t, x2: x, y2: H - m.b, stroke: 'currentColor', opacity: 0.15 });
+    add('text', { x, y: H - m.b + 14, 'text-anchor': 'middle', 'font-size': 11, fill: 'currentColor' }, `${Math.round(v * 100)}%`);
+  }
+  themes.forEach((t, i) => {
+    const yTop = m.t + i * groupH;
+    add('text', { x: m.l - 8, y: yTop + barH + pairGap / 2 + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'currentColor' }, t.theme);
+    for (const [v, color, label] of [[t.p50, 'var(--series-p50)', 'P50'], [t.p90, 'var(--series-p90)', 'P90']]) {
+      const y = label === 'P50' ? yTop : yTop + barH + pairGap;
+      const bar = add('rect', { x: m.l, y, width: Math.max(X(v) - m.l, 1), height: barH, rx: 3, fill: color });
+      const tt = document.createElementNS('http://www.w3.org/2000/svg', 'title'); tt.textContent = `${t.theme}, ${label}: ${(v * 100).toFixed(1)}%`; bar.append(tt);
+    }
+  });
+  const legend = h('p', { class: 'label' }, h('span', { style: 'color:var(--series-p50);margin-right:12px' }, '● P50'), h('span', { style: 'color:var(--series-p90)' }, '● P90'));
+  return h('div', {}, svg, legend);
+}
+
 // ---------- sections ----------
 function renderScenarioNav() {
   const nav = $('scenarios');
@@ -132,6 +162,20 @@ function renderCaveats() {
       h('p', { class: 'label' }, 'Risk labels are bands (HIGH below the median of protection-interval demand, MEDIUM between the median and P90, LOW at or above P90, an overstock flag above P99), not probabilities of stockout. A HIGH band with a median below one unit, or in a long zero run, is much less likely to run short than it suggests.')));
 }
 
+function renderExplanations() {
+  const ex = state.data.explanations;
+  if (!ex) return;
+  const rows = ex.themes.map((t) => ({ theme: t.theme, 'P50 share': `${(t.p50 * 100).toFixed(1)}%`, 'P90 share': `${(t.p90 * 100).toFixed(1)}%` }));
+  $('explain').replaceChildren(
+    h('h3', {}, 'What typically drives a forecast'),
+    explainChart(ex.themes),
+    h('p', { class: 'label' }, ex.note),
+    h('details', {}, h('summary', {}, 'Table view'), table(rows)),
+    h('p', {}, h('strong', {}, 'A few example predictions:')),
+    h('ul', {}, ex.examples.map((e) => h('li', {}, h('strong', {}, `${e.series} (${e.segment}): `), e.text))),
+    h('p', { class: 'label' }, 'Source: ', ex.source));
+}
+
 function renderWhatIf() {
   // state.live only means the scenario/results API answered; the what-if form also needs at least one
   // stored series (the per-series quantile tables are held back until the M5 data-use terms are confirmed,
@@ -183,7 +227,7 @@ function renderWhatIf() {
       : h('p', { class: 'muted' }, 'Unavailable: the what-if reads per-series quantile tables from the database, which are not published until the data-use terms of the M5 data are confirmed; it also needs the API to be awake.'), f, out));
 }
 
-function renderAll() { renderScenarioNav(); renderScenario(); renderForecast(); renderWhatIf(); renderCaveats(); }
+function renderAll() { renderScenarioNav(); renderScenario(); renderForecast(); renderWhatIf(); renderExplanations(); renderCaveats(); }
 
 // ---------- side nav: highlight the section in view ----------
 function initPageNav() {

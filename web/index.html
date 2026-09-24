@@ -31,6 +31,7 @@
       <h2 id="h-how-it-works">How it works</h2>
       <p>Most demand forecasters predict one number and bolt a safety-stock margin on top of it. This one instead predicts a calibrated range of likely demand directly&nbsp;&mdash; a set of quantiles&nbsp;&mdash; and reads the order quantity straight off that range at whatever service level you target.</p>
       <p class="label">Model: gradient-boosted trees (XGBoost) trained for multiple quantiles, evaluated with rolling-origin validation and embargoed retraining to avoid leakage. Full write-up: see <a href="#forecast">forecast accuracy</a> and the repository README.</p>
+      <div id="explain"></div>
     </section>
     <nav id="scenarios" aria-label="Scenarios that were run"></nav>
     <section id="scenario"><p class="muted">Loading the recorded results…</p></section>
